@@ -1,0 +1,25 @@
+# Node
+**/node_modules/
+
+# Logs
+*.log
+
+# Vercel
+**/.vercel/
+
+# Variables de entorno
+**/.env.local
+**/.env.production.local
+**/.env.development.local
+
+# Sistema
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Build
+frontend/build/
+backend/dist/
