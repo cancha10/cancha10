@@ -1,4 +1,3 @@
-import AlumnoExpediente from './components/AlumnoExpediente';
 import { useState, useEffect, useCallback } from 'react';
 import './index.css';
 import Api from './api';
@@ -880,18 +879,212 @@ function FormFeedback({ onClose, onGuardar, autor }) {
 }
 
 // ── Detalle / eliminar alumno (admin) ───────────────────────────────────
-function DetalleAlumno({ alumno, onClose, onEliminar, onActualizar, showToast }) {
+function DetalleAlumno({ alumno, onClose, onEliminar, onActualizar }) {
+  const [confirmar, setConfirmar] = useState(false);
+  const [showFicha, setShowFicha] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedback, setFeedback] = useState([]);
+  const [pagos, setPagos] = useState([]);
+  const [loadingDetalle, setLoadingDetalle] = useState(true);
+  const [passwordTemp, setPasswordTemp] = useState(null);
+  const [restableciendo, setRestableciendo] = useState(false);
+  const [editandoDiaPago, setEditandoDiaPago] = useState(false);
+  const [diaPago, setDiaPago] = useState(alumno.dia_pago || '');
+  const [guardandoDia, setGuardandoDia] = useState(false);
+
+  const restablecerPassword = async () => {
+    setRestableciendo(true);
+    try {
+      const data = await Api.resetearPassword(alumno.id);
+      setPasswordTemp(data.password_temporal);
+    } catch (e) {
+      alert(e.message || 'No se pudo restablecer la contraseña');
+    } finally {
+      setRestableciendo(false);
+    }
+  };
+
+  const guardarDiaPago = async () => {
+    if (!diaPago || diaPago < 1 || diaPago > 31) { alert('Día debe ser entre 1 y 31'); return; }
+    if (!alumno.inscripcion_id) { alert('Este alumno no tiene una inscripción activa'); return; }
+    setGuardandoDia(true);
+    try {
+      await Api.actualizarDiaPago(alumno.inscripcion_id, parseInt(diaPago));
+      setEditandoDiaPago(false);
+      onActualizar();
+    } catch (e) {
+      alert(e.message || 'No se pudo actualizar el día de pago');
+    } finally { setGuardandoDia(false); }
+  };
+
+  const cargarDetalle = () => {
+    setLoadingDetalle(true);
+    Promise.all([
+      Api.listarFeedback(alumno.id).catch(() => []),
+      Api.obtenerAlumno(alumno.id).catch(() => null),
+    ]).then(([fb, detalle]) => {
+      setFeedback(fb || []);
+      setPagos(detalle?.historial_pagos || []);
+    }).finally(() => setLoadingDetalle(false));
+  };
+
+  useEffect(() => { cargarDetalle(); }, [alumno.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const guardarFicha = () => {
+    setShowFicha(false);
+    onActualizar();
+  };
+
+  const agregarFeedback = async (texto) => {
+    try {
+      await Api.agregarFeedback(alumno.id, texto);
+      setShowFeedback(false);
+      cargarDetalle();
+    } catch (e) {
+      alert(e.message || 'No se pudo guardar el comentario');
+    }
+  };
+
   return (
-    <AlumnoExpediente
-      alumno={alumno}
-      onClose={onClose}
-      onEliminar={onEliminar}
-      onActualizar={onActualizar}
-      FichaTecnicaComponent={FichaTecnica}
-      showToast={showToast}
-    />
+    <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="drawer" style={{maxHeight:'90dvh'}}>
+        <div className="drawer-handle" />
+        <div style={{display:'flex',alignItems:'center',gap:14,marginBottom:16}}>
+          <div className="avatar" style={{width:52,height:52,fontSize:18}}>{inits(alumno.n)}</div>
+          <div>
+            <div className="drawer-title" style={{marginBottom:2}}>{alumno.n}</div>
+            <span className={`pago-tag tag-${alumno.pago}`}>{alumno.pago}</span>
+          </div>
+        </div>
+
+        <div className="card" style={{marginBottom:10}}>
+          <div className="card-label">Datos</div>
+          {alumno.email && <div className="pago-row" style={{padding:'8px 0'}}><span style={{fontSize:12,color:'var(--gr)'}}>Email</span><span style={{fontSize:13,color:'var(--wh)'}}>{alumno.email}</span></div>}
+          {alumno.telefono && <div className="pago-row" style={{padding:'8px 0'}}><span style={{fontSize:12,color:'var(--gr)'}}>Teléfono</span><span style={{fontSize:13,color:'var(--wh)'}}>{alumno.telefono}</span></div>}
+          <div className="pago-row" style={{padding:'8px 0'}}><span style={{fontSize:12,color:'var(--gr)'}}>Nivel</span><span style={{fontSize:13,color:'var(--wh)'}}>{alumno.nivel}</span></div>
+          <div className="pago-row" style={{padding:'8px 0'}}><span style={{fontSize:12,color:'var(--gr)'}}>Grupo</span><span style={{fontSize:13,color:'var(--wh)'}}>{alumno.grupo||'—'}</span></div>
+          <div className="pago-row" style={{padding:'8px 0',borderBottom:'none'}}><span style={{fontSize:12,color:'var(--gr)'}}>Paquete</span><span style={{fontSize:13,color:'var(--gold)',fontWeight:700}}>${(alumno.monto||0).toLocaleString()}/{alumno.tipo_cobro==='por_sesion'?'sesión':'mes'}</span></div>
+        </div>
+
+        <div className="card" style={{marginBottom:10}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            <div>
+              <div style={{fontSize:12,color:'var(--gr)'}}>Día de pago</div>
+              {!editandoDiaPago
+                ? <div style={{fontSize:16,fontFamily:"'Barlow Condensed',sans-serif",fontWeight:700,color:'var(--wh)',marginTop:2}}>
+                    Día <span style={{color:'var(--gold)'}}>{alumno.dia_pago || '—'}</span> de cada mes
+                  </div>
+                : <div style={{display:'flex',gap:8,alignItems:'center',marginTop:6}}>
+                    <input type="number" min="1" max="31" value={diaPago}
+                      onChange={e=>setDiaPago(e.target.value)}
+                      style={{width:60,padding:'7px 10px',border:'1px solid #2A2A2A',borderRadius:7,fontFamily:'inherit',fontSize:15,color:'var(--wh)',background:'var(--bk3)',textAlign:'center'}}/>
+                    <button onClick={guardarDiaPago} disabled={guardandoDia}
+                      style={{padding:'7px 14px',background:'var(--gold)',border:'none',borderRadius:7,color:'var(--bk)',fontFamily:"'Barlow Condensed',sans-serif",fontSize:13,fontWeight:700,cursor:'pointer'}}>
+                      {guardandoDia?'...':'Guardar'}
+                    </button>
+                    <button onClick={()=>setEditandoDiaPago(false)}
+                      style={{padding:'7px 10px',background:'none',border:'1px solid #2A2A2A',borderRadius:7,color:'var(--gr)',fontFamily:'inherit',fontSize:13,cursor:'pointer'}}>
+                      ✕
+                    </button>
+                  </div>
+              }
+            </div>
+            {!editandoDiaPago && (
+              <button onClick={()=>setEditandoDiaPago(true)}
+                style={{padding:'5px 10px',borderRadius:6,border:'1px solid #2A2A2A',background:'none',color:'var(--gr)',fontSize:12,cursor:'pointer'}}>
+                ✏️ Editar
+              </button>
+            )}
+          </div>
+        </div>
+
+        <button onClick={() => setShowFicha(true)}
+          style={{width:'100%',padding:'12px',marginBottom:8,background:'var(--bk2)',border:'1px solid #2A2A2A',borderRadius:8,color:'var(--gold)',fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,cursor:'pointer',textTransform:'uppercase',letterSpacing:0.5,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+          🎾 Ver / editar ficha técnica
+        </button>
+
+        <div className="card" style={{marginBottom:10}}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12}}>
+            <div className="card-label" style={{marginBottom:0}}>Retroalimentación</div>
+            <button onClick={() => setShowFeedback(true)}
+              style={{padding:'4px 10px',background:'var(--gold)',border:'none',borderRadius:6,color:'var(--bk)',fontSize:11,fontWeight:700,cursor:'pointer'}}>
+              + Agregar
+            </button>
+          </div>
+          {loadingDetalle ? <div style={{fontSize:12,color:'var(--gr)'}}>Cargando...</div> :
+            feedback.length===0
+            ? <div style={{fontSize:12,color:'var(--gr)'}}>Sin comentarios todavía</div>
+            : feedback.map((f,i) => (
+              <div key={f.id||i} style={{marginBottom:10,paddingBottom:10,borderBottom: i<feedback.length-1 ? '1px solid #1A1A1A':'none'}}>
+                <div style={{fontSize:13,color:'var(--wh)',lineHeight:1.5}}>{f.texto}</div>
+                <div style={{fontSize:11,color:'var(--gr)',marginTop:4}}>{f.autor} · {fmtFechaCorta((f.created_at||'').split('T')[0])}</div>
+              </div>
+            ))
+          }
+        </div>
+
+        <div className="card" style={{marginBottom:10}}>
+          <div className="card-label">Historial de pagos</div>
+          {loadingDetalle ? <div style={{fontSize:12,color:'var(--gr)'}}>Cargando...</div> :
+            pagos.length===0
+            ? <div style={{fontSize:12,color:'var(--gr)'}}>Sin pagos registrados</div>
+            : pagos.map((p,i) => (
+              <div key={p.id||i} className="pago-row">
+                <div>
+                  <div className="pago-nombre" style={{fontSize:14}}>{fmtFechaCorta(p.periodo_inicio)}</div>
+                  {p.comprobante_url && <div style={{fontSize:11,color:'var(--gold)'}}>📎 Comprobante adjunto</div>}
+                </div>
+                <div className="text-right">
+                  <div className="pago-monto">${parseFloat(p.monto).toLocaleString()}</div>
+                  <span className={`pago-tag tag-${p.estado}`} style={{display:'inline-block',marginTop:4}}>{p.estado}</span>
+                </div>
+              </div>
+            ))
+          }
+        </div>
+
+        {!passwordTemp
+          ? <button onClick={restablecerPassword} disabled={restableciendo}
+              style={{width:'100%',padding:'12px',marginBottom:10,background:'var(--bk2)',border:'1px solid #2A2A2A',borderRadius:8,color:'var(--gold)',fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,cursor:'pointer',textTransform:'uppercase',letterSpacing:0.5,display:'flex',alignItems:'center',justifyContent:'center',gap:8}}>
+              🔑 {restableciendo ? 'Generando...' : 'Restablecer contraseña'}
+            </button>
+          : <div style={{background:'#1A1200',border:'1px solid var(--gold)',borderRadius:8,padding:14,marginBottom:10}}>
+              <div style={{fontSize:12,color:'var(--gr)',marginBottom:6}}>Nueva contraseña temporal — compártela con el alumno:</div>
+              <div style={{fontFamily:"'Barlow Condensed',sans-serif",fontSize:20,fontWeight:800,color:'var(--gold)',letterSpacing:1,textAlign:'center',padding:'8px 0'}}>{passwordTemp}</div>
+              <button onClick={()=>setPasswordTemp(null)}
+                style={{width:'100%',marginTop:8,padding:'8px',background:'none',border:'1px solid #2A2A2A',borderRadius:6,color:'var(--gr)',fontSize:12,cursor:'pointer'}}>
+                Cerrar
+              </button>
+            </div>
+        }
+
+        {!confirmar
+          ? <button onClick={() => setConfirmar(true)}
+              style={{width:'100%',padding:'12px',background:'none',border:'1px solid var(--danger)',borderRadius:8,color:'var(--danger)',fontFamily:"'Barlow Condensed',sans-serif",fontSize:15,fontWeight:700,cursor:'pointer',textTransform:'uppercase',letterSpacing:1}}>
+              Eliminar alumno
+            </button>
+          : <div style={{background:'#1A0A0A',border:'1px solid var(--danger)',borderRadius:8,padding:16}}>
+              <div style={{fontSize:13,color:'var(--wh)',marginBottom:12,textAlign:'center'}}>¿Confirmas que quieres eliminar a <strong>{alumno.n}</strong>?</div>
+              <div style={{display:'flex',gap:8}}>
+                <button onClick={() => setConfirmar(false)} style={{flex:1,padding:'10px',background:'none',border:'1px solid #2A2A2A',borderRadius:8,color:'var(--gr)',fontFamily:'inherit',fontSize:13,cursor:'pointer'}}>Cancelar</button>
+                <button onClick={() => onEliminar(alumno.id)} style={{flex:1,padding:'10px',background:'var(--danger)',border:'none',borderRadius:8,color:'#fff',fontFamily:"'Barlow Condensed',sans-serif",fontSize:14,fontWeight:700,cursor:'pointer',textTransform:'uppercase'}}>Sí, eliminar</button>
+              </div>
+            </div>
+        }
+
+        {showFicha && <FichaTecnica alumnoId={alumno.id} nombreAlumno={alumno.n} isAdmin={true} onGuardar={guardarFicha} onClose={() => setShowFicha(false)} />}
+        {showFeedback && <FormFeedback onClose={() => setShowFeedback(false)} onGuardar={agregarFeedback} />}
+      </div>
+    </div>
   );
 }
+
+function fmtFechaCorta(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T12:00:00');
+  return `${d.getDate()} ${MESES[d.getMonth()]}`;
+}
+
 function ViewAlumnos({ showToast }) {
   const [alumnos, setAlumnos] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -999,15 +1192,7 @@ function ViewAlumnos({ showToast }) {
           </div>
       }
       {showForm && <FormNuevoAlumno onClose={() => setShowForm(false)} onGuardar={agregarAlumno} />}
-      {detalle && (
-  <DetalleAlumno
-    alumno={detalle}
-    onClose={() => setDetalle(null)}
-    onEliminar={eliminarAlumno}
-    onActualizar={actualizarAlumno}
-    showToast={showToast}
-  />
-)}
+      {detalle && <DetalleAlumno alumno={detalle} onClose={() => setDetalle(null)} onEliminar={eliminarAlumno} onActualizar={actualizarAlumno} />}
     </>
   );
 }
