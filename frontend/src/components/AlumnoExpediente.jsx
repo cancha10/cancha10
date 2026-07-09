@@ -1,48 +1,61 @@
-import { useEffect, useMemo, useState } from 'react';
-import Api from '../api';
+import { useEffect, useMemo, useState } from "react";
+import Api from "../api";
 
-const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+const MESES = [
+  "Ene",
+  "Feb",
+  "Mar",
+  "Abr",
+  "May",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dic",
+];
 
 const NIVELES = [
-  { id: 1, label: 'Principiante' },
-  { id: 2, label: 'Intermedio' },
-  { id: 3, label: 'Avanzado' },
+  { id: 1, label: "Principiante" },
+  { id: 2, label: "Intermedio" },
+  { id: 3, label: "Avanzado" },
 ];
 
 const TIPOS_CLASE = [
-  { value: 'grupal', label: 'Grupal' },
-  { value: 'particular', label: 'Particular' },
+  { value: "grupal", label: "Grupal" },
+  { value: "particular", label: "Particular" },
 ];
 
-function inits(nombre = '') {
+function inits(nombre = "") {
   return nombre
-    .split(' ')
+    .split(" ")
     .filter(Boolean)
-    .map(w => w[0])
+    .map((w) => w[0])
     .slice(0, 2)
-    .join('')
+    .join("")
     .toUpperCase();
 }
 
 function fmtFechaCorta(iso) {
-  if (!iso) return '';
-  const base = iso.includes('T') ? iso.split('T')[0] : iso;
-  const d = new Date(base + 'T12:00:00');
-  if (Number.isNaN(d.getTime())) return '';
+  if (!iso) return "";
+  const base = iso.includes("T") ? iso.split("T")[0] : iso;
+  const d = new Date(base + "T12:00:00");
+  if (Number.isNaN(d.getTime())) return "";
   return `${d.getDate()} ${MESES[d.getMonth()]}`;
 }
 
-function separarNombre(nombreCompleto = '') {
-  const partes = nombreCompleto.trim().split(' ').filter(Boolean);
-  if (partes.length <= 1) return { nombre: partes[0] || '', apellido: '' };
+function separarNombre(nombreCompleto = "") {
+  const partes = nombreCompleto.trim().split(" ").filter(Boolean);
+  if (partes.length <= 1) return { nombre: partes[0] || "", apellido: "" };
   return {
-    nombre: partes.slice(0, -1).join(' '),
-    apellido: partes.slice(-1).join(' '),
+    nombre: partes.slice(0, -1).join(" "),
+    apellido: partes.slice(-1).join(" "),
   };
 }
 
 function normalizarPagoTag(estado) {
-  if (!estado || estado === 'sin_pago') return 'pendiente';
+  if (!estado || estado === "sin_pago") return "pendiente";
   return estado;
 }
 
@@ -57,37 +70,35 @@ function obtenerMontoAlumno(alumno = {}) {
 }
 
 function EditarAlumnoModal({ alumno, detalle, onClose, onGuardado }) {
-  const nombreBase = separarNombre(alumno?.n || alumno?.nombre_completo || '');
-  const nivelActual = detalle?.nivel || alumno?.nivel || '';
+  const nombreBase = separarNombre(alumno?.n || alumno?.nombre_completo || "");
+  const nivelActual = detalle?.nivel || alumno?.nivel || "";
 
   const nivelIdInicial =
-    nivelActual === 'intermedio' ? 2 :
-    nivelActual === 'avanzado' ? 3 :
-    1;
+    nivelActual === "intermedio" ? 2 : nivelActual === "avanzado" ? 3 : 1;
 
   const [form, setForm] = useState({
-    nombre: detalle?.nombre || nombreBase.nombre || '',
-    apellido: detalle?.apellido || nombreBase.apellido || '',
-    telefono: detalle?.telefono || alumno?.telefono || '',
-    email: detalle?.email || alumno?.email || '',
+    nombre: detalle?.nombre || nombreBase.nombre || "",
+    apellido: detalle?.apellido || nombreBase.apellido || "",
+    telefono: detalle?.telefono || alumno?.telefono || "",
+    email: detalle?.email || alumno?.email || "",
     nivel_id: detalle?.nivel_id || alumno?.nivel_id || nivelIdInicial,
-    tipo_clase: detalle?.tipo_clase || alumno?.tipo_clase || 'grupal',
-    notas: detalle?.notas || alumno?.notas || '',
+    tipo_clase: detalle?.tipo_clase || alumno?.tipo_clase || "grupal",
+    notas: detalle?.notas || alumno?.notas || "",
   });
 
   const [guardando, setGuardando] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
 
-  const set = (k, v) => setForm(prev => ({ ...prev, [k]: v }));
+  const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
 
   const guardar = async () => {
     if (!form.nombre.trim()) {
-      setError('El nombre es obligatorio');
+      setError("El nombre es obligatorio");
       return;
     }
 
     setGuardando(true);
-    setError('');
+    setError("");
 
     try {
       await Api.actualizarAlumno(alumno.id, {
@@ -101,70 +112,97 @@ function EditarAlumnoModal({ alumno, detalle, onClose, onGuardado }) {
 
       onGuardado();
     } catch (e) {
-      setError(e.message || 'No se pudo actualizar el alumno');
+      setError(e.message || "No se pudo actualizar el alumno");
     } finally {
       setGuardando(false);
     }
   };
 
   const selStyle = {
-    width: '100%',
-    padding: '11px 13px',
-    border: '1px solid #2A2A2A',
+    width: "100%",
+    padding: "11px 13px",
+    border: "1px solid #2A2A2A",
     borderRadius: 8,
-    fontFamily: 'inherit',
+    fontFamily: "inherit",
     fontSize: 14,
-    color: 'var(--wh)',
-    background: 'var(--bk3)',
-    outline: 'none',
+    color: "var(--wh)",
+    background: "var(--bk3)",
+    outline: "none",
   };
 
   return (
-    <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="drawer" style={{ maxHeight: '92dvh' }}>
+    <div
+      className="overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="drawer" style={{ maxHeight: "92dvh" }}>
         <div className="drawer-handle" />
         <div className="drawer-title">Editar alumno</div>
-        <div className="drawer-sub">Actualiza los datos principales del expediente</div>
+        <div className="drawer-sub">
+          Actualiza los datos principales del expediente
+        </div>
 
         {error && <div className="error-msg">{error}</div>}
 
         <div className="field">
           <label>Nombre(s) *</label>
-          <input value={form.nombre} onChange={e => set('nombre', e.target.value)} />
+          <input
+            value={form.nombre}
+            onChange={(e) => set("nombre", e.target.value)}
+          />
         </div>
 
         <div className="field">
           <label>Apellido(s)</label>
-          <input value={form.apellido} onChange={e => set('apellido', e.target.value)} />
+          <input
+            value={form.apellido}
+            onChange={(e) => set("apellido", e.target.value)}
+          />
         </div>
 
         <div className="field">
           <label>Email</label>
           <input value={form.email} disabled />
-          <div style={{ fontSize: 11, color: 'var(--gr)', marginTop: 4 }}>
-            El cambio de email lo habilitaremos en el siguiente ajuste de backend.
+          <div style={{ fontSize: 11, color: "var(--gr)", marginTop: 4 }}>
+            El cambio de email lo habilitaremos en el siguiente ajuste de
+            backend.
           </div>
         </div>
 
         <div className="field">
           <label>Teléfono</label>
-          <input value={form.telefono} onChange={e => set('telefono', e.target.value)} />
+          <input
+            value={form.telefono}
+            onChange={(e) => set("telefono", e.target.value)}
+          />
         </div>
 
         <div className="field">
           <label>Nivel</label>
-          <select value={form.nivel_id || ''} onChange={e => set('nivel_id', e.target.value)} style={selStyle}>
-            {NIVELES.map(n => (
-              <option key={n.id} value={n.id}>{n.label}</option>
+          <select
+            value={form.nivel_id || ""}
+            onChange={(e) => set("nivel_id", e.target.value)}
+            style={selStyle}
+          >
+            {NIVELES.map((n) => (
+              <option key={n.id} value={n.id}>
+                {n.label}
+              </option>
             ))}
           </select>
         </div>
 
         <div className="field">
           <label>Tipo de clase</label>
-          <select value={form.tipo_clase} onChange={e => set('tipo_clase', e.target.value)} style={selStyle}>
-            {TIPOS_CLASE.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
+          <select
+            value={form.tipo_clase}
+            onChange={(e) => set("tipo_clase", e.target.value)}
+            style={selStyle}
+          >
+            {TIPOS_CLASE.map((t) => (
+              <option key={t.value} value={t.value}>
+                {t.label}
+              </option>
             ))}
           </select>
         </div>
@@ -173,41 +211,41 @@ function EditarAlumnoModal({ alumno, detalle, onClose, onGuardado }) {
           <label>Notas administrativas</label>
           <textarea
             value={form.notas}
-            onChange={e => set('notas', e.target.value)}
+            onChange={(e) => set("notas", e.target.value)}
             rows={4}
             placeholder="Notas internas del alumno..."
             style={{
-              width: '100%',
-              padding: '11px 13px',
-              border: '1px solid #2A2A2A',
+              width: "100%",
+              padding: "11px 13px",
+              border: "1px solid #2A2A2A",
               borderRadius: 8,
-              fontFamily: 'inherit',
+              fontFamily: "inherit",
               fontSize: 14,
-              color: 'var(--wh)',
-              background: 'var(--bk3)',
-              outline: 'none',
-              resize: 'vertical',
+              color: "var(--wh)",
+              background: "var(--bk3)",
+              outline: "none",
+              resize: "vertical",
             }}
           />
         </div>
 
         <button className="btn-save" onClick={guardar} disabled={guardando}>
-          {guardando ? 'Guardando...' : 'Guardar cambios'}
+          {guardando ? "Guardando..." : "Guardar cambios"}
         </button>
 
         <button
           onClick={onClose}
           style={{
-            width: '100%',
+            width: "100%",
             marginTop: 10,
-            padding: '11px',
-            background: 'none',
-            border: '1px solid #2A2A2A',
+            padding: "11px",
+            background: "none",
+            border: "1px solid #2A2A2A",
             borderRadius: 8,
-            color: 'var(--gr)',
-            fontFamily: 'inherit',
+            color: "var(--gr)",
+            fontFamily: "inherit",
             fontSize: 13,
-            cursor: 'pointer',
+            cursor: "pointer",
           }}
         >
           Cancelar
@@ -218,10 +256,13 @@ function EditarAlumnoModal({ alumno, detalle, onClose, onGuardado }) {
 }
 
 function FormFeedbackLocal({ onClose, onGuardar }) {
-  const [texto, setTexto] = useState('');
+  const [texto, setTexto] = useState("");
 
   return (
-    <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+    <div
+      className="overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
       <div className="drawer">
         <div className="drawer-handle" />
         <div className="drawer-title">Nueva retroalimentación</div>
@@ -231,20 +272,20 @@ function FormFeedbackLocal({ onClose, onGuardar }) {
           <label>Comentario</label>
           <textarea
             value={texto}
-            onChange={e => setTexto(e.target.value)}
+            onChange={(e) => setTexto(e.target.value)}
             rows={5}
             placeholder="Ej. Buen progreso en el saque, trabajar la consistencia del revés..."
             style={{
-              width: '100%',
-              padding: '11px 13px',
-              border: '1px solid #2A2A2A',
+              width: "100%",
+              padding: "11px 13px",
+              border: "1px solid #2A2A2A",
               borderRadius: 8,
-              fontFamily: 'inherit',
+              fontFamily: "inherit",
               fontSize: 14,
-              color: 'var(--wh)',
-              background: 'var(--bk3)',
-              outline: 'none',
-              resize: 'vertical',
+              color: "var(--wh)",
+              background: "var(--bk3)",
+              outline: "none",
+              resize: "vertical",
             }}
           />
         </div>
@@ -261,7 +302,123 @@ function FormFeedbackLocal({ onClose, onGuardar }) {
     </div>
   );
 }
+function RegistrarPagoModal({ alumno, onClose, onGuardar }) {
+  const [form, setForm] = useState({
+    tipo: "mensualidad",
+    monto: alumno.monto || "",
+    metodo_pago: "efectivo",
+    periodo_inicio: "",
+    periodo_fin: "",
+    notas: "",
+  });
 
+  const [guardando, setGuardando] = useState(false);
+
+  const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
+
+  const guardar = async () => {
+    if (!form.monto || Number(form.monto) <= 0) {
+      alert("Ingresa un monto válido");
+      return;
+    }
+
+    setGuardando(true);
+
+    await onGuardar({
+      ...form,
+      monto: Number(form.monto),
+    });
+
+    setGuardando(false);
+  };
+
+  return (
+    <div
+      className="overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="drawer">
+        <div className="drawer-handle" />
+        <div className="drawer-title">Registrar pago</div>
+        <div className="drawer-sub">{alumno.n || alumno.nombre_completo}</div>
+
+        <div className="field">
+          <label>Concepto</label>
+          <select
+            value={form.tipo}
+            onChange={(e) => set("tipo", e.target.value)}
+          >
+            <option value="mensualidad">Mensualidad</option>
+            <option value="inscripcion">Inscripción</option>
+            <option value="clase_particular">Clase particular</option>
+            <option value="torneo">Torneo</option>
+            <option value="tienda">Tienda</option>
+            <option value="otro">Otro</option>
+          </select>
+        </div>
+
+        <div className="field">
+          <label>Monto</label>
+          <input
+            type="number"
+            value={form.monto}
+            onChange={(e) => set("monto", e.target.value)}
+            placeholder="Ej. 1600"
+          />
+        </div>
+
+        <div className="field">
+          <label>Método de pago</label>
+          <select
+            value={form.metodo_pago}
+            onChange={(e) => set("metodo_pago", e.target.value)}
+          >
+            <option value="efectivo">Efectivo</option>
+            <option value="transferencia">Transferencia</option>
+            <option value="tarjeta">Tarjeta</option>
+            <option value="mercado_pago">Mercado Pago</option>
+          </select>
+        </div>
+
+        <div className="field">
+          <label>Periodo inicio</label>
+          <input
+            type="date"
+            value={form.periodo_inicio}
+            onChange={(e) => set("periodo_inicio", e.target.value)}
+          />
+        </div>
+
+        <div className="field">
+          <label>Periodo fin</label>
+          <input
+            type="date"
+            value={form.periodo_fin}
+            onChange={(e) => set("periodo_fin", e.target.value)}
+          />
+        </div>
+
+        <div className="field">
+          <label>Observaciones</label>
+          <textarea
+            value={form.notas}
+            onChange={(e) => set("notas", e.target.value)}
+            rows={3}
+            placeholder="Notas del pago..."
+          />
+        </div>
+
+        <button className="btn-save" onClick={guardar} disabled={guardando}>
+          {guardando ? "Registrando..." : "Registrar pago"}
+        </button>
+
+        <button onClick={onClose} style={{ marginTop: 10, width: "100%" }}>
+          Cancelar
+        </button>
+      </div>
+    </div>
+  );
+}
 export default function AlumnoExpediente({
   alumno,
   onClose,
@@ -274,10 +431,11 @@ export default function AlumnoExpediente({
   const [showFicha, setShowFicha] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
-  const [tab, setTab] = useState('datos');
+  const [tab, setTab] = useState("datos");
 
   const [feedback, setFeedback] = useState([]);
   const [pagos, setPagos] = useState([]);
+  const [showRegistrarPago, setShowRegistrarPago] = useState(false);
   const [detalle, setDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(true);
 
@@ -285,10 +443,14 @@ export default function AlumnoExpediente({
   const [restableciendo, setRestableciendo] = useState(false);
 
   const [editandoDiaPago, setEditandoDiaPago] = useState(false);
-  const [diaPago, setDiaPago] = useState(alumno.dia_pago || alumno.dia_pago_efectivo || '');
+  const [diaPago, setDiaPago] = useState(
+    alumno.dia_pago || alumno.dia_pago_efectivo || "",
+  );
   const [guardandoDia, setGuardandoDia] = useState(false);
 
-  const pagoEstado = normalizarPagoTag(alumno.pago || alumno.ultimo_pago_estado);
+  const pagoEstado = normalizarPagoTag(
+    alumno.pago || alumno.ultimo_pago_estado,
+  );
   const monto = obtenerMontoAlumno(alumno);
 
   const cargarDetalle = () => {
@@ -315,12 +477,12 @@ export default function AlumnoExpediente({
     const dia = parseInt(diaPago, 10);
 
     if (!dia || dia < 1 || dia > 31) {
-      alert('Día debe ser entre 1 y 31');
+      alert("Día debe ser entre 1 y 31");
       return;
     }
 
     if (!alumno.inscripcion_id) {
-      alert('Este alumno no tiene una inscripción activa');
+      alert("Este alumno no tiene una inscripción activa");
       return;
     }
 
@@ -329,11 +491,11 @@ export default function AlumnoExpediente({
     try {
       await Api.actualizarDiaPago(alumno.inscripcion_id, dia);
       setEditandoDiaPago(false);
-      showToast?.('Día de pago actualizado ✓');
+      showToast?.("Día de pago actualizado ✓");
       onActualizar();
       cargarDetalle();
     } catch (e) {
-      alert(e.message || 'No se pudo actualizar el día de pago');
+      alert(e.message || "No se pudo actualizar el día de pago");
     } finally {
       setGuardandoDia(false);
     }
@@ -346,7 +508,7 @@ export default function AlumnoExpediente({
       const data = await Api.resetearPassword(alumno.id);
       setPasswordTemp(data.password_temporal);
     } catch (e) {
-      alert(e.message || 'No se pudo restablecer la contraseña');
+      alert(e.message || "No se pudo restablecer la contraseña");
     } finally {
       setRestableciendo(false);
     }
@@ -354,7 +516,7 @@ export default function AlumnoExpediente({
 
   const guardarFicha = () => {
     setShowFicha(false);
-    showToast?.('Ficha actualizada ✓');
+    showToast?.("Ficha actualizada ✓");
     onActualizar();
     cargarDetalle();
   };
@@ -363,34 +525,71 @@ export default function AlumnoExpediente({
     try {
       await Api.agregarFeedback(alumno.id, texto);
       setShowFeedback(false);
-      showToast?.('Retroalimentación agregada ✓');
+      showToast?.("Retroalimentación agregada ✓");
       cargarDetalle();
     } catch (e) {
-      alert(e.message || 'No se pudo guardar el comentario');
+      alert(e.message || "No se pudo guardar el comentario");
     }
   };
 
   const guardarEdicionAlumno = () => {
     setShowEditar(false);
-    showToast?.('Alumno actualizado ✓');
+    showToast?.("Alumno actualizado ✓");
     onActualizar();
     cargarDetalle();
   };
 
-  const Tabs = useMemo(() => ([
-    { id: 'datos', label: '👤 Datos' },
-    { id: 'pagos', label: '💳 Pagos' },
-    { id: 'asistencias', label: '📅 Asistencias' },
-    { id: 'clases', label: '🎾 Clases' },
-  ]), []);
+  const registrarPago = async (datosPago) => {
+    try {
+      await Api.registrarPago({
+        alumno_id: alumno.id,
+        inscripcion_id: alumno.inscripcion_id || null,
+        tipo: datosPago.tipo,
+        monto: datosPago.monto,
+        metodo_pago: datosPago.metodo_pago,
+        periodo_inicio: datosPago.periodo_inicio || null,
+        periodo_fin: datosPago.periodo_fin || null,
+        notas: datosPago.notas || null,
+      });
+
+      setShowRegistrarPago(false);
+      showToast?.("Pago registrado ✓");
+      onActualizar();
+      cargarDetalle();
+    } catch (e) {
+      alert(e.message || "No se pudo registrar el pago");
+    }
+  };
+  const Tabs = useMemo(
+    () => [
+      { id: "datos", label: "👤 Datos" },
+      { id: "pagos", label: "💳 Pagos" },
+      { id: "asistencias", label: "📅 Asistencias" },
+      { id: "clases", label: "🎾 Clases" },
+    ],
+    [],
+  );
 
   return (
-    <div className="overlay" onClick={e => e.target === e.currentTarget && onClose()}>
-      <div className="drawer" style={{ maxHeight: '92dvh' }}>
+    <div
+      className="overlay"
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div className="drawer" style={{ maxHeight: "92dvh" }}>
         <div className="drawer-handle" />
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
-          <div className="avatar" style={{ width: 52, height: 52, fontSize: 18 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            marginBottom: 16,
+          }}
+        >
+          <div
+            className="avatar"
+            style={{ width: 52, height: 52, fontSize: 18 }}
+          >
             {inits(alumno.n || alumno.nombre_completo)}
           </div>
 
@@ -398,18 +597,25 @@ export default function AlumnoExpediente({
             <div className="drawer-title" style={{ marginBottom: 2 }}>
               {alumno.n || alumno.nombre_completo}
             </div>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+            <div
+              style={{
+                display: "flex",
+                gap: 6,
+                flexWrap: "wrap",
+                alignItems: "center",
+              }}
+            >
               <span className={`pago-tag tag-${pagoEstado}`}>{pagoEstado}</span>
               {alumno.estado_inscripcion && (
                 <span
                   style={{
-                    padding: '3px 8px',
+                    padding: "3px 8px",
                     borderRadius: 20,
-                    background: '#151515',
-                    border: '1px solid #2A2A2A',
-                    color: 'var(--gr)',
+                    background: "#151515",
+                    border: "1px solid #2A2A2A",
+                    color: "var(--gr)",
                     fontSize: 11,
-                    textTransform: 'uppercase',
+                    textTransform: "uppercase",
                     fontWeight: 700,
                   }}
                 >
@@ -420,41 +626,59 @@ export default function AlumnoExpediente({
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
-          <div className="stat-box" style={{ padding: '12px 8px' }}>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 8,
+            marginBottom: 12,
+          }}
+        >
+          <div className="stat-box" style={{ padding: "12px 8px" }}>
             <div className="stat-num gold" style={{ fontSize: 20 }}>
-              {alumno.nivel || detalle?.nivel || '—'}
+              {alumno.nivel || detalle?.nivel || "—"}
             </div>
             <div className="stat-lbl">Nivel</div>
           </div>
 
-          <div className="stat-box" style={{ padding: '12px 8px' }}>
+          <div className="stat-box" style={{ padding: "12px 8px" }}>
             <div className="stat-num ok" style={{ fontSize: 20 }}>
               ${parseFloat(monto || 0).toLocaleString()}
             </div>
             <div className="stat-lbl">
-              {alumno.tipo_cobro === 'por_sesion' || alumno.paquete_tipo === 'particular' ? 'Por sesión' : 'Mensual'}
+              {alumno.tipo_cobro === "por_sesion" ||
+              alumno.paquete_tipo === "particular"
+                ? "Por sesión"
+                : "Mensual"}
             </div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: 6, overflowX: 'auto', marginBottom: 12, paddingBottom: 2 }}>
-          {Tabs.map(t => (
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            marginBottom: 12,
+            paddingBottom: 2,
+          }}
+        >
+          {Tabs.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
               style={{
-                whiteSpace: 'nowrap',
-                padding: '8px 10px',
+                whiteSpace: "nowrap",
+                padding: "8px 10px",
                 borderRadius: 8,
-                border: '1px solid #2A2A2A',
-                background: tab === t.id ? 'var(--gold)' : 'var(--bk2)',
-                color: tab === t.id ? 'var(--bk)' : 'var(--gr)',
+                border: "1px solid #2A2A2A",
+                background: tab === t.id ? "var(--gold)" : "var(--bk2)",
+                color: tab === t.id ? "var(--bk)" : "var(--gr)",
                 fontFamily: "'Barlow Condensed',sans-serif",
                 fontSize: 12,
                 fontWeight: 800,
-                cursor: 'pointer',
-                textTransform: 'uppercase',
+                cursor: "pointer",
+                textTransform: "uppercase",
               }}
             >
               {t.label}
@@ -462,21 +686,30 @@ export default function AlumnoExpediente({
           ))}
         </div>
 
-        {tab === 'datos' && (
+        {tab === "datos" && (
           <>
             <div className="card" style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <div className="card-label" style={{ marginBottom: 0 }}>Datos generales</div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 8,
+                }}
+              >
+                <div className="card-label" style={{ marginBottom: 0 }}>
+                  Datos generales
+                </div>
                 <button
                   onClick={() => setShowEditar(true)}
                   style={{
-                    padding: '5px 10px',
+                    padding: "5px 10px",
                     borderRadius: 6,
-                    border: '1px solid #2A2A2A',
-                    background: 'none',
-                    color: 'var(--gold)',
+                    border: "1px solid #2A2A2A",
+                    background: "none",
+                    color: "var(--gold)",
                     fontSize: 12,
-                    cursor: 'pointer',
+                    cursor: "pointer",
                     fontWeight: 700,
                   }}
                 >
@@ -485,43 +718,74 @@ export default function AlumnoExpediente({
               </div>
 
               {(alumno.email || detalle?.email) && (
-                <div className="pago-row" style={{ padding: '8px 0' }}>
-                  <span style={{ fontSize: 12, color: 'var(--gr)' }}>Email</span>
-                  <span style={{ fontSize: 13, color: 'var(--wh)' }}>{alumno.email || detalle?.email}</span>
+                <div className="pago-row" style={{ padding: "8px 0" }}>
+                  <span style={{ fontSize: 12, color: "var(--gr)" }}>
+                    Email
+                  </span>
+                  <span style={{ fontSize: 13, color: "var(--wh)" }}>
+                    {alumno.email || detalle?.email}
+                  </span>
                 </div>
               )}
 
               {(alumno.telefono || detalle?.telefono) && (
-                <div className="pago-row" style={{ padding: '8px 0' }}>
-                  <span style={{ fontSize: 12, color: 'var(--gr)' }}>Teléfono</span>
-                  <span style={{ fontSize: 13, color: 'var(--wh)' }}>{alumno.telefono || detalle?.telefono}</span>
+                <div className="pago-row" style={{ padding: "8px 0" }}>
+                  <span style={{ fontSize: 12, color: "var(--gr)" }}>
+                    Teléfono
+                  </span>
+                  <span style={{ fontSize: 13, color: "var(--wh)" }}>
+                    {alumno.telefono || detalle?.telefono}
+                  </span>
                 </div>
               )}
 
-              <div className="pago-row" style={{ padding: '8px 0' }}>
-                <span style={{ fontSize: 12, color: 'var(--gr)' }}>Tipo de clase</span>
-                <span style={{ fontSize: 13, color: 'var(--wh)' }}>
-                  {alumno.tipo_clase || detalle?.tipo_clase || '—'}
+              <div className="pago-row" style={{ padding: "8px 0" }}>
+                <span style={{ fontSize: 12, color: "var(--gr)" }}>
+                  Tipo de clase
+                </span>
+                <span style={{ fontSize: 13, color: "var(--wh)" }}>
+                  {alumno.tipo_clase || detalle?.tipo_clase || "—"}
                 </span>
               </div>
 
-              <div className="pago-row" style={{ padding: '8px 0' }}>
-                <span style={{ fontSize: 12, color: 'var(--gr)' }}>Grupo</span>
-                <span style={{ fontSize: 13, color: 'var(--wh)' }}>{alumno.grupo || detalle?.grupo || '—'}</span>
+              <div className="pago-row" style={{ padding: "8px 0" }}>
+                <span style={{ fontSize: 12, color: "var(--gr)" }}>Grupo</span>
+                <span style={{ fontSize: 13, color: "var(--wh)" }}>
+                  {alumno.grupo || detalle?.grupo || "—"}
+                </span>
               </div>
 
-              <div className="pago-row" style={{ padding: '8px 0', borderBottom: 'none' }}>
-                <span style={{ fontSize: 12, color: 'var(--gr)' }}>Paquete</span>
-                <span style={{ fontSize: 13, color: 'var(--gold)', fontWeight: 700 }}>
-                  {alumno.paquete || detalle?.paquete || '—'}
+              <div
+                className="pago-row"
+                style={{ padding: "8px 0", borderBottom: "none" }}
+              >
+                <span style={{ fontSize: 12, color: "var(--gr)" }}>
+                  Paquete
+                </span>
+                <span
+                  style={{
+                    fontSize: 13,
+                    color: "var(--gold)",
+                    fontWeight: 700,
+                  }}
+                >
+                  {alumno.paquete || detalle?.paquete || "—"}
                 </span>
               </div>
             </div>
 
             <div className="card" style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
                 <div>
-                  <div style={{ fontSize: 12, color: 'var(--gr)' }}>Día de pago</div>
+                  <div style={{ fontSize: 12, color: "var(--gr)" }}>
+                    Día de pago
+                  </div>
 
                   {!editandoDiaPago ? (
                     <div
@@ -529,32 +793,41 @@ export default function AlumnoExpediente({
                         fontSize: 16,
                         fontFamily: "'Barlow Condensed',sans-serif",
                         fontWeight: 700,
-                        color: 'var(--wh)',
+                        color: "var(--wh)",
                         marginTop: 2,
                       }}
                     >
-                      Día <span style={{ color: 'var(--gold)' }}>
-                        {alumno.dia_pago || alumno.dia_pago_efectivo || '—'}
-                      </span> de cada mes
+                      Día{" "}
+                      <span style={{ color: "var(--gold)" }}>
+                        {alumno.dia_pago || alumno.dia_pago_efectivo || "—"}
+                      </span>{" "}
+                      de cada mes
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: 8,
+                        alignItems: "center",
+                        marginTop: 6,
+                      }}
+                    >
                       <input
                         type="number"
                         min="1"
                         max="31"
                         value={diaPago}
-                        onChange={e => setDiaPago(e.target.value)}
+                        onChange={(e) => setDiaPago(e.target.value)}
                         style={{
                           width: 60,
-                          padding: '7px 10px',
-                          border: '1px solid #2A2A2A',
+                          padding: "7px 10px",
+                          border: "1px solid #2A2A2A",
                           borderRadius: 7,
-                          fontFamily: 'inherit',
+                          fontFamily: "inherit",
                           fontSize: 15,
-                          color: 'var(--wh)',
-                          background: 'var(--bk3)',
-                          textAlign: 'center',
+                          color: "var(--wh)",
+                          background: "var(--bk3)",
+                          textAlign: "center",
                         }}
                       />
 
@@ -562,31 +835,31 @@ export default function AlumnoExpediente({
                         onClick={guardarDiaPago}
                         disabled={guardandoDia}
                         style={{
-                          padding: '7px 14px',
-                          background: 'var(--gold)',
-                          border: 'none',
+                          padding: "7px 14px",
+                          background: "var(--gold)",
+                          border: "none",
                           borderRadius: 7,
-                          color: 'var(--bk)',
+                          color: "var(--bk)",
                           fontFamily: "'Barlow Condensed',sans-serif",
                           fontSize: 13,
                           fontWeight: 700,
-                          cursor: 'pointer',
+                          cursor: "pointer",
                         }}
                       >
-                        {guardandoDia ? '...' : 'Guardar'}
+                        {guardandoDia ? "..." : "Guardar"}
                       </button>
 
                       <button
                         onClick={() => setEditandoDiaPago(false)}
                         style={{
-                          padding: '7px 10px',
-                          background: 'none',
-                          border: '1px solid #2A2A2A',
+                          padding: "7px 10px",
+                          background: "none",
+                          border: "1px solid #2A2A2A",
                           borderRadius: 7,
-                          color: 'var(--gr)',
-                          fontFamily: 'inherit',
+                          color: "var(--gr)",
+                          fontFamily: "inherit",
                           fontSize: 13,
-                          cursor: 'pointer',
+                          cursor: "pointer",
                         }}
                       >
                         ✕
@@ -599,13 +872,13 @@ export default function AlumnoExpediente({
                   <button
                     onClick={() => setEditandoDiaPago(true)}
                     style={{
-                      padding: '5px 10px',
+                      padding: "5px 10px",
                       borderRadius: 6,
-                      border: '1px solid #2A2A2A',
-                      background: 'none',
-                      color: 'var(--gr)',
+                      border: "1px solid #2A2A2A",
+                      background: "none",
+                      color: "var(--gr)",
                       fontSize: 12,
-                      cursor: 'pointer',
+                      cursor: "pointer",
                     }}
                   >
                     ✏️ Día
@@ -617,22 +890,22 @@ export default function AlumnoExpediente({
             <button
               onClick={() => setShowFicha(true)}
               style={{
-                width: '100%',
-                padding: '12px',
+                width: "100%",
+                padding: "12px",
                 marginBottom: 8,
-                background: 'var(--bk2)',
-                border: '1px solid #2A2A2A',
+                background: "var(--bk2)",
+                border: "1px solid #2A2A2A",
                 borderRadius: 8,
-                color: 'var(--gold)',
+                color: "var(--gold)",
                 fontFamily: "'Barlow Condensed',sans-serif",
                 fontSize: 14,
                 fontWeight: 700,
-                cursor: 'pointer',
-                textTransform: 'uppercase',
+                cursor: "pointer",
+                textTransform: "uppercase",
                 letterSpacing: 0.5,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
                 gap: 8,
               }}
             >
@@ -640,19 +913,28 @@ export default function AlumnoExpediente({
             </button>
 
             <div className="card" style={{ marginBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <div className="card-label" style={{ marginBottom: 0 }}>Retroalimentación</div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+              >
+                <div className="card-label" style={{ marginBottom: 0 }}>
+                  Retroalimentación
+                </div>
                 <button
                   onClick={() => setShowFeedback(true)}
                   style={{
-                    padding: '4px 10px',
-                    background: 'var(--gold)',
-                    border: 'none',
+                    padding: "4px 10px",
+                    background: "var(--gold)",
+                    border: "none",
                     borderRadius: 6,
-                    color: 'var(--bk)',
+                    color: "var(--bk)",
                     fontSize: 11,
                     fontWeight: 700,
-                    cursor: 'pointer',
+                    cursor: "pointer",
                   }}
                 >
                   + Agregar
@@ -660,9 +942,13 @@ export default function AlumnoExpediente({
               </div>
 
               {loadingDetalle ? (
-                <div style={{ fontSize: 12, color: 'var(--gr)' }}>Cargando...</div>
+                <div style={{ fontSize: 12, color: "var(--gr)" }}>
+                  Cargando...
+                </div>
               ) : feedback.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--gr)' }}>Sin comentarios todavía</div>
+                <div style={{ fontSize: 12, color: "var(--gr)" }}>
+                  Sin comentarios todavía
+                </div>
               ) : (
                 feedback.map((f, i) => (
                   <div
@@ -670,12 +956,24 @@ export default function AlumnoExpediente({
                     style={{
                       marginBottom: 10,
                       paddingBottom: 10,
-                      borderBottom: i < feedback.length - 1 ? '1px solid #1A1A1A' : 'none',
+                      borderBottom:
+                        i < feedback.length - 1 ? "1px solid #1A1A1A" : "none",
                     }}
                   >
-                    <div style={{ fontSize: 13, color: 'var(--wh)', lineHeight: 1.5 }}>{f.texto}</div>
-                    <div style={{ fontSize: 11, color: 'var(--gr)', marginTop: 4 }}>
-                      {f.autor} · {fmtFechaCorta((f.created_at || '').split('T')[0])}
+                    <div
+                      style={{
+                        fontSize: 13,
+                        color: "var(--wh)",
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {f.texto}
+                    </div>
+                    <div
+                      style={{ fontSize: 11, color: "var(--gr)", marginTop: 4 }}
+                    >
+                      {f.autor} ·{" "}
+                      {fmtFechaCorta((f.created_at || "").split("T")[0])}
                     </div>
                   </div>
                 ))
@@ -684,25 +982,48 @@ export default function AlumnoExpediente({
           </>
         )}
 
-        {tab === 'pagos' && (
+        {tab === "pagos" && (
           <div className="card" style={{ marginBottom: 10 }}>
+            <button
+              onClick={() => setShowRegistrarPago(true)}
+              style={{
+                width: "100%",
+                padding: "12px",
+                marginBottom: 12,
+                background: "var(--gold)",
+                border: "none",
+                borderRadius: 8,
+                color: "var(--bk)",
+                fontFamily: "'Barlow Condensed',sans-serif",
+                fontSize: 15,
+                fontWeight: 800,
+                cursor: "pointer",
+                textTransform: "uppercase",
+              }}
+            >
+              💳 Registrar pago
+            </button>
             <div className="card-label">Historial de pagos</div>
 
             {loadingDetalle ? (
-              <div style={{ fontSize: 12, color: 'var(--gr)' }}>Cargando...</div>
+              <div style={{ fontSize: 12, color: "var(--gr)" }}>
+                Cargando...
+              </div>
             ) : pagos.length === 0 ? (
-              <div style={{ fontSize: 12, color: 'var(--gr)' }}>Sin pagos registrados</div>
+              <div style={{ fontSize: 12, color: "var(--gr)" }}>
+                Sin pagos registrados
+              </div>
             ) : (
-              pagos.map(p => (
+              pagos.map((p) => (
                 <div key={p.id} className="pago-row">
                   <div>
-                    <div style={{ fontSize: 13, color: 'var(--wh)' }}>
+                    <div style={{ fontSize: 13, color: "var(--wh)" }}>
                       ${parseFloat(p.monto || 0).toLocaleString()}
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--gr)' }}>
+                    <div style={{ fontSize: 11, color: "var(--gr)" }}>
                       {p.periodo_inicio
-                        ? `${fmtFechaCorta(p.periodo_inicio)}${p.periodo_fin ? ` – ${fmtFechaCorta(p.periodo_fin)}` : ''}`
-                        : fmtFechaCorta((p.created_at || '').split('T')[0])}
+                        ? `${fmtFechaCorta(p.periodo_inicio)}${p.periodo_fin ? ` – ${fmtFechaCorta(p.periodo_fin)}` : ""}`
+                        : fmtFechaCorta((p.created_at || "").split("T")[0])}
                     </div>
                   </div>
                   <span className={`pago-tag tag-${p.estado}`}>{p.estado}</span>
@@ -710,32 +1031,52 @@ export default function AlumnoExpediente({
               ))
             )}
 
-            <div style={{ marginTop: 12, fontSize: 12, color: 'var(--gr)', lineHeight: 1.45 }}>
-              El botón <strong style={{ color: 'var(--gold)' }}>Registrar pago</strong> entra en el siguiente componente.
-              Esta pestaña ya deja preparado el Expediente C10.
+            <div
+              style={{
+                marginTop: 12,
+                fontSize: 12,
+                color: "var(--gr)",
+                lineHeight: 1.45,
+              }}
+            >
+              El botón{" "}
+              <strong style={{ color: "var(--gold)" }}>Registrar pago</strong>{" "}
+              entra en el siguiente componente. Esta pestaña ya deja preparado
+              el Expediente C10.
             </div>
           </div>
         )}
 
-        {tab === 'asistencias' && (
+        {tab === "asistencias" && (
           <div className="card" style={{ marginBottom: 10 }}>
             <div className="card-label">Asistencias</div>
-            <div style={{ fontSize: 13, color: 'var(--gr)', lineHeight: 1.5 }}>
-              Esta sección queda preparada para mostrar asistencia por alumno. La conectaremos al endpoint de sesiones/asistencia en la siguiente iteración.
+            <div style={{ fontSize: 13, color: "var(--gr)", lineHeight: 1.5 }}>
+              Esta sección queda preparada para mostrar asistencia por alumno.
+              La conectaremos al endpoint de sesiones/asistencia en la siguiente
+              iteración.
             </div>
           </div>
         )}
 
-        {tab === 'clases' && (
+        {tab === "clases" && (
           <div className="card" style={{ marginBottom: 10 }}>
             <div className="card-label">Clases</div>
-            <div className="pago-row" style={{ padding: '8px 0' }}>
-              <span style={{ fontSize: 12, color: 'var(--gr)' }}>Grupo actual</span>
-              <span style={{ fontSize: 13, color: 'var(--wh)' }}>{alumno.grupo || detalle?.grupo || '—'}</span>
+            <div className="pago-row" style={{ padding: "8px 0" }}>
+              <span style={{ fontSize: 12, color: "var(--gr)" }}>
+                Grupo actual
+              </span>
+              <span style={{ fontSize: 13, color: "var(--wh)" }}>
+                {alumno.grupo || detalle?.grupo || "—"}
+              </span>
             </div>
-            <div className="pago-row" style={{ padding: '8px 0', borderBottom: 'none' }}>
-              <span style={{ fontSize: 12, color: 'var(--gr)' }}>Tipo</span>
-              <span style={{ fontSize: 13, color: 'var(--wh)' }}>{alumno.tipo_clase || detalle?.tipo_clase || '—'}</span>
+            <div
+              className="pago-row"
+              style={{ padding: "8px 0", borderBottom: "none" }}
+            >
+              <span style={{ fontSize: 12, color: "var(--gr)" }}>Tipo</span>
+              <span style={{ fontSize: 13, color: "var(--wh)" }}>
+                {alumno.tipo_clase || detalle?.tipo_clase || "—"}
+              </span>
             </div>
           </div>
         )}
@@ -745,11 +1086,18 @@ export default function AlumnoExpediente({
             className="card"
             style={{
               marginBottom: 10,
-              borderColor: 'var(--gold)',
-              background: 'rgba(201,161,76,0.06)',
+              borderColor: "var(--gold)",
+              background: "rgba(201,161,76,0.06)",
             }}
           >
-            <div style={{ fontSize: 12, color: 'var(--gr)', textAlign: 'center', marginBottom: 6 }}>
+            <div
+              style={{
+                fontSize: 12,
+                color: "var(--gr)",
+                textAlign: "center",
+                marginBottom: 6,
+              }}
+            >
               Nueva contraseña temporal — compártela con el alumno:
             </div>
 
@@ -758,10 +1106,10 @@ export default function AlumnoExpediente({
                 fontFamily: "'Barlow Condensed',sans-serif",
                 fontSize: 20,
                 fontWeight: 800,
-                color: 'var(--gold)',
+                color: "var(--gold)",
                 letterSpacing: 1,
-                textAlign: 'center',
-                padding: '8px 0',
+                textAlign: "center",
+                padding: "8px 0",
               }}
             >
               {passwordTemp}
@@ -770,15 +1118,15 @@ export default function AlumnoExpediente({
             <button
               onClick={() => setPasswordTemp(null)}
               style={{
-                width: '100%',
+                width: "100%",
                 marginTop: 8,
-                padding: '8px',
-                background: 'none',
-                border: '1px solid #2A2A2A',
+                padding: "8px",
+                background: "none",
+                border: "1px solid #2A2A2A",
                 borderRadius: 6,
-                color: 'var(--gr)',
+                color: "var(--gr)",
                 fontSize: 12,
-                cursor: 'pointer',
+                cursor: "pointer",
               }}
             >
               Cerrar
@@ -790,62 +1138,77 @@ export default function AlumnoExpediente({
           onClick={restablecerPassword}
           disabled={restableciendo}
           style={{
-            width: '100%',
-            padding: '11px',
+            width: "100%",
+            padding: "11px",
             marginBottom: 8,
-            background: 'none',
-            border: '1px solid #2A2A2A',
+            background: "none",
+            border: "1px solid #2A2A2A",
             borderRadius: 8,
-            color: 'var(--gr)',
+            color: "var(--gr)",
             fontFamily: "'Barlow Condensed',sans-serif",
             fontSize: 14,
             fontWeight: 700,
-            cursor: 'pointer',
-            textTransform: 'uppercase',
+            cursor: "pointer",
+            textTransform: "uppercase",
           }}
         >
-          {restableciendo ? 'Generando...' : '🔑 Restablecer contraseña'}
+          {restableciendo ? "Generando..." : "🔑 Restablecer contraseña"}
         </button>
 
         {!confirmar ? (
           <button
             onClick={() => setConfirmar(true)}
             style={{
-              width: '100%',
-              padding: '12px',
-              background: 'none',
-              border: '1px solid var(--danger)',
+              width: "100%",
+              padding: "12px",
+              background: "none",
+              border: "1px solid var(--danger)",
               borderRadius: 8,
-              color: 'var(--danger)',
+              color: "var(--danger)",
               fontFamily: "'Barlow Condensed',sans-serif",
               fontSize: 15,
               fontWeight: 700,
-              cursor: 'pointer',
-              textTransform: 'uppercase',
+              cursor: "pointer",
+              textTransform: "uppercase",
               letterSpacing: 1,
             }}
           >
             Eliminar alumno
           </button>
         ) : (
-          <div style={{ background: '#1A0A0A', border: '1px solid var(--danger)', borderRadius: 8, padding: 16 }}>
-            <div style={{ fontSize: 13, color: 'var(--wh)', marginBottom: 12, textAlign: 'center' }}>
-              ¿Confirmas que quieres eliminar a <strong>{alumno.n || alumno.nombre_completo}</strong>?
+          <div
+            style={{
+              background: "#1A0A0A",
+              border: "1px solid var(--danger)",
+              borderRadius: 8,
+              padding: 16,
+            }}
+          >
+            <div
+              style={{
+                fontSize: 13,
+                color: "var(--wh)",
+                marginBottom: 12,
+                textAlign: "center",
+              }}
+            >
+              ¿Confirmas que quieres eliminar a{" "}
+              <strong>{alumno.n || alumno.nombre_completo}</strong>?
             </div>
 
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: "flex", gap: 8 }}>
               <button
                 onClick={() => setConfirmar(false)}
                 style={{
                   flex: 1,
-                  padding: '10px',
-                  background: 'none',
-                  border: '1px solid #2A2A2A',
+                  padding: "10px",
+                  background: "none",
+                  border: "1px solid #2A2A2A",
                   borderRadius: 8,
-                  color: 'var(--gr)',
-                  fontFamily: 'inherit',
+                  color: "var(--gr)",
+                  fontFamily: "inherit",
                   fontSize: 13,
-                  cursor: 'pointer',
+                  cursor: "pointer",
                 }}
               >
                 Cancelar
@@ -855,16 +1218,16 @@ export default function AlumnoExpediente({
                 onClick={() => onEliminar(alumno.id)}
                 style={{
                   flex: 1,
-                  padding: '10px',
-                  background: 'var(--danger)',
-                  border: 'none',
+                  padding: "10px",
+                  background: "var(--danger)",
+                  border: "none",
                   borderRadius: 8,
-                  color: '#fff',
+                  color: "#fff",
                   fontFamily: "'Barlow Condensed',sans-serif",
                   fontSize: 14,
                   fontWeight: 700,
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
+                  cursor: "pointer",
+                  textTransform: "uppercase",
                 }}
               >
                 Sí, eliminar
@@ -873,6 +1236,13 @@ export default function AlumnoExpediente({
           </div>
         )}
 
+        {showRegistrarPago && (
+          <RegistrarPagoModal
+            alumno={alumno}
+            onClose={() => setShowRegistrarPago(false)}
+            onGuardar={registrarPago}
+          />
+        )}
         {showEditar && (
           <EditarAlumnoModal
             alumno={alumno}
