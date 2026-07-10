@@ -542,8 +542,8 @@ export default function AlumnoExpediente({
   const registrarPago = async (datosPago) => {
     try {
       await Api.registrarPago({
-        alumno_id: alumno.id,
-        inscripcion_id: alumno.inscripcion_id || null,
+        alumno_id: detalle?.alumno_id,
+        inscripcion_id: detalle?.inscripcion_id || null,
         tipo: datosPago.tipo,
         monto: datosPago.monto,
         metodo_pago: datosPago.metodo_pago,
