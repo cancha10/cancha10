@@ -773,6 +773,114 @@ export default function AlumnoExpediente({
                 </span>
               </div>
             </div>
+            {/* Estado financiero */}
+            <div
+              className="card"
+              style={{
+                marginBottom: 10,
+                borderColor:
+                  detalle?.estado_pago === "al_corriente"
+                    ? "var(--ok)"
+                    : detalle?.estado_pago === "atrasado"
+                      ? "var(--danger)"
+                      : "var(--gold)",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div
+                    style={{
+                      fontSize: 11,
+                      color: "var(--gr)",
+                      textTransform: "uppercase",
+                      letterSpacing: 1,
+                      marginBottom: 5,
+                    }}
+                  >
+                    Estado financiero
+                  </div>
+
+                  <div
+                    style={{
+                      fontFamily: "'Barlow Condensed', sans-serif",
+                      fontSize: 19,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      color:
+                        detalle?.estado_pago === "al_corriente"
+                          ? "var(--ok)"
+                          : detalle?.estado_pago === "atrasado"
+                            ? "var(--danger)"
+                            : "var(--gold)",
+                    }}
+                  >
+                    {detalle?.estado_pago === "al_corriente"
+                      ? "● Al corriente"
+                      : detalle?.estado_pago === "atrasado"
+                        ? "● Atrasado"
+                        : detalle?.estado_pago === "sin_pago"
+                          ? "● Sin pago registrado"
+                          : "● Sin inscripción"}
+                  </div>
+                </div>
+
+                <div style={{ textAlign: "right" }}>
+                  {detalle?.fecha_vencimiento && (
+                    <>
+                      <div style={{ fontSize: 11, color: "var(--gr)" }}>
+                        {detalle?.estado_pago === "atrasado"
+                          ? "Venció"
+                          : "Vence"}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 13,
+                          color: "var(--wh)",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {new Date(detalle.fecha_vencimiento).toLocaleDateString(
+                          "es-MX",
+                          {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          },
+                        )}
+                      </div>
+
+                      <div
+                        style={{
+                          fontSize: 11,
+                          color: "var(--gr)",
+                          marginTop: 3,
+                        }}
+                      >
+                        {detalle?.estado_pago === "atrasado"
+                          ? `${detalle.dias_estado} día${
+                              detalle.dias_estado === 1 ? "" : "s"
+                            } de atraso`
+                          : detalle?.dias_estado === 0
+                            ? "Vence hoy"
+                            : `${detalle?.dias_estado} día${
+                                detalle?.dias_estado === 1 ? "" : "s"
+                              } restante${detalle?.dias_estado === 1 ? "" : "s"}`}
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Día de pago */}
 
             <div className="card" style={{ marginBottom: 10 }}>
               <div
