@@ -806,7 +806,44 @@ export default function AlumnoExpediente({
                   >
                     Estado financiero
                   </div>
+                  <div
+                    style={{
+                      fontSize: 22,
+                      fontWeight: 700,
+                      color:
+                        detalle?.estado_pago === "al_corriente"
+                          ? "var(--ok)"
+                          : detalle?.estado_pago === "atrasado"
+                            ? "var(--danger)"
+                            : "var(--gold)",
+                      marginBottom: 6,
+                    }}
+                  >
+                    {detalle?.estado_pago === "al_corriente"
+                      ? "AL CORRIENTE"
+                      : detalle?.estado_pago === "atrasado"
+                        ? "ATRASADO"
+                        : "SIN PAGO"}
+                  </div>
 
+                  <div style={{ fontSize: 13, color: "var(--gr)" }}>
+                    {detalle?.fecha_vencimiento
+                      ? `Vence: ${new Date(detalle.fecha_vencimiento).toLocaleDateString()}`
+                      : "Sin fecha de vencimiento"}
+                  </div>
+
+                  <div
+                    style={{
+                      marginTop: 6,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      color: "var(--w)",
+                    }}
+                  >
+                    {detalle?.estado_pago === "al_corriente"
+                      ? `${detalle?.dias_estado ?? 0} días restantes`
+                      : `${detalle?.dias_estado ?? 0} días de atraso`}
+                  </div>
                   <div
                     style={{
                       fontFamily: "'Barlow Condensed', sans-serif",
@@ -820,63 +857,10 @@ export default function AlumnoExpediente({
                             ? "var(--danger)"
                             : "var(--gold)",
                     }}
-                  >
-                    {detalle?.estado_pago === "al_corriente"
-                      ? "● Al corriente"
-                      : detalle?.estado_pago === "atrasado"
-                        ? "● Atrasado"
-                        : detalle?.estado_pago === "sin_pago"
-                          ? "● Sin pago registrado"
-                          : "● Sin inscripción"}
-                  </div>
+                  ></div>
                 </div>
 
-                <div style={{ textAlign: "right" }}>
-                  {detalle?.fecha_vencimiento && (
-                    <>
-                      <div style={{ fontSize: 11, color: "var(--gr)" }}>
-                        {detalle?.estado_pago === "atrasado"
-                          ? "Venció"
-                          : "Vence"}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 13,
-                          color: "var(--wh)",
-                          fontWeight: 700,
-                        }}
-                      >
-                        {new Date(detalle.fecha_vencimiento).toLocaleDateString(
-                          "es-MX",
-                          {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          },
-                        )}
-                      </div>
-
-                      <div
-                        style={{
-                          fontSize: 11,
-                          color: "var(--gr)",
-                          marginTop: 3,
-                        }}
-                      >
-                        {detalle?.estado_pago === "atrasado"
-                          ? `${detalle.dias_estado} día${
-                              detalle.dias_estado === 1 ? "" : "s"
-                            } de atraso`
-                          : detalle?.dias_estado === 0
-                            ? "Vence hoy"
-                            : `${detalle?.dias_estado} día${
-                                detalle?.dias_estado === 1 ? "" : "s"
-                              } restante${detalle?.dias_estado === 1 ? "" : "s"}`}
-                      </div>
-                    </>
-                  )}
-                </div>
+                <div style={{ textAlign: "right" }} />
               </div>
             </div>
 
