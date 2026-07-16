@@ -1151,14 +1151,44 @@ export default function AlumnoExpediente({
               pagos.map((p) => (
                 <div key={p.id} className="pago-row">
                   <div>
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "var(--gr)",
+                        textTransform: "uppercase",
+                        marginBottom: 2,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {p.tipo || "Pago"}
+                    </div>
+
                     <div style={{ fontSize: 13, color: "var(--wh)" }}>
                       ${parseFloat(p.monto || 0).toLocaleString()}
                     </div>
+
                     <div style={{ fontSize: 11, color: "var(--gr)" }}>
                       {p.periodo_inicio
-                        ? `${fmtFechaCorta(p.periodo_inicio)}${p.periodo_fin ? ` – ${fmtFechaCorta(p.periodo_fin)}` : ""}`
+                        ? `${fmtFechaCorta(p.periodo_inicio)}${
+                            p.periodo_fin
+                              ? ` - ${fmtFechaCorta(p.periodo_fin)}`
+                              : ""
+                          }`
                         : fmtFechaCorta((p.created_at || "").split("T")[0])}
                     </div>
+
+                    {p.metodo_pago && (
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: "var(--gr)",
+                          marginTop: 2,
+                          textTransform: "capitalize",
+                        }}
+                      >
+                        {p.metodo_pago}
+                      </div>
+                    )}
                   </div>
                   <span className={`pago-tag tag-${p.estado}`}>{p.estado}</span>
                 </div>
