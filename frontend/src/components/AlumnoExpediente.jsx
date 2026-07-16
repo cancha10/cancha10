@@ -313,7 +313,49 @@ function RegistrarPagoModal({ alumno, onClose, onGuardar }) {
   });
 
   const [guardando, setGuardando] = useState(false);
+  useEffect(() => {
+    if (!alumno) return;
 
+    const diaPago = Number(alumno.dia_pago_efectivo || alumno.dia_pago || 1);
+
+    let inicio;
+
+    if (alumno.fecha_vencimiento) {
+      const vencimientoAnterior = new Date(alumno.fecha_vencimiento);
+
+      inicio = new Date(
+        vencimientoAnterior.getFullYear(),
+        vencimientoAnterior.getMonth(),
+        diaPago,
+      );
+    } else {
+      const hoy = new Date();
+
+      inicio = new Date(hoy.getFullYear(), hoy.getMonth(), diaPago);
+    }
+
+    const fin = new Date(inicio.getFullYear(), inicio.getMonth() + 1, diaPago);
+
+    const formato = (fecha) => {
+      const año = fecha.getFullYear();
+      const mes = String(fecha.getMonth() + 1).padStart(2, "0");
+      const dia = String(fecha.getDate()).padStart(2, "0");
+
+      return `${año}-${mes}-${dia}`;
+    };
+
+    setForm((prev) => ({
+      ...prev,
+      monto:
+        alumno.precio_mensual ||
+        alumno.precio_sesion_o_mes ||
+        alumno.monto ||
+        prev.monto,
+
+      periodo_inicio: formato(inicio),
+      periodo_fin: formato(fin),
+    }));
+  }, [alumno]);
   const set = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
 
   const guardar = async () => {
@@ -1330,7 +1372,7 @@ export default function AlumnoExpediente({
 
         {showRegistrarPago && (
           <RegistrarPagoModal
-            alumno={alumno}
+            alumno={{ ...alumno, ...detalle }}
             onClose={() => setShowRegistrarPago(false)}
             onGuardar={registrarPago}
           />
