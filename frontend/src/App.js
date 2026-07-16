@@ -2038,6 +2038,9 @@ function ViewAlumnos({ showToast }) {
           tipo_cobro: a.tipo_cobro,
           grupo: a.grupo,
           inscripcion_id: a.inscripcion_id,
+          fecha_vencimiento: a.fecha_vencimiento,
+          estado_pago: a.estado_pago,
+          dias_estado: a.dias_estado,
           dia_pago: a.dia_pago,
           pago:
             a.ultimo_pago_estado === "sin_pago"
@@ -2160,10 +2163,64 @@ function ViewAlumnos({ showToast }) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <span className={`pago-tag tag-${a.pago}`}>{a.pago}</span>
+                  <div
+                    style={{
+                      display: "inline-flex",
+                      alignItems: "center",
+                      gap: 5,
+                      padding: "4px 7px",
+                      borderRadius: 7,
+                      border: `1px solid ${
+                        a.estado_pago === "al_corriente"
+                          ? "var(--ok)"
+                          : a.estado_pago === "vence_pronto"
+                            ? "var(--gold)"
+                            : a.estado_pago === "atrasado"
+                              ? "var(--danger)"
+                              : "var(--gr)"
+                      }`,
+                      color:
+                        a.estado_pago === "al_corriente"
+                          ? "var(--ok)"
+                          : a.estado_pago === "vence_pronto"
+                            ? "var(--gold)"
+                            : a.estado_pago === "atrasado"
+                              ? "var(--danger)"
+                              : "var(--gr)",
+                      fontSize: 10,
+                      fontWeight: 800,
+                      textTransform: "uppercase",
+                      marginBottom: 5,
+                    }}
+                  >
+                    {a.estado_pago === "al_corriente"
+                      ? "🟢 Al corriente"
+                      : a.estado_pago === "vence_pronto"
+                        ? a.dias_estado === 0
+                          ? "🟡 Vence hoy"
+                          : `🟡 Vence en ${a.dias_estado} días`
+                        : a.estado_pago === "atrasado"
+                          ? `🔴 ${a.dias_estado} días de atraso`
+                          : a.estado_pago === "sin_inscripcion"
+                            ? "⚪ Sin inscripción"
+                            : "⚪ Sin pago"}
+                  </div>
+
                   <div className="alumno-monto">
                     ${(a.monto || 0).toLocaleString()}
                   </div>
+
+                  {a.fecha_vencimiento && (
+                    <div
+                      style={{
+                        fontSize: 10,
+                        color: "var(--gr)",
+                        marginTop: 2,
+                      }}
+                    >
+                      Vence: {fmtFechaCorta(a.fecha_vencimiento)}
+                    </div>
+                  )}
                 </div>
               </div>
             ))
