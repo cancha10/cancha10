@@ -2062,7 +2062,7 @@ function ViewAlumnos({ showToast }) {
   const filtrados = alumnos.filter(
     (a) =>
       (!busqueda || a.n.toLowerCase().includes(busqueda.toLowerCase())) &&
-      (filtro === "todos" || a.pago === filtro),
+      (filtro === "todos" || a.estado_pago === filtro),
   );
 
   const agregarAlumno = () => {
@@ -2128,15 +2128,17 @@ function ViewAlumnos({ showToast }) {
         />
       </div>
       <div className="filter-row">
-        {["todos", "pagado", "pendiente", "vencido"].map((f) => (
-          <button
-            key={f}
-            className={`fpill ${filtro === f ? "active" : ""}`}
-            onClick={() => setFiltro(f)}
-          >
-            {f === "todos" ? "Todos" : f.charAt(0).toUpperCase() + f.slice(1)}
-          </button>
-        ))}
+        {["todos", "al_corriente", "vence_pronto", "atrasado", "sin_pago"].map(
+          (f) => (
+            <button
+              key={f}
+              className={`fpill ${filtro === f ? "active" : ""}`}
+              onClick={() => setFiltro(f)}
+            >
+              {f === "todos" ? "Todos" : f.charAt(0).toUpperCase() + f.slice(1)}
+            </button>
+          ),
+        )}
       </div>
       {loading ? (
         <div className="loading">
