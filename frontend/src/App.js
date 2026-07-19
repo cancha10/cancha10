@@ -1,4 +1,6 @@
 import AlumnoExpediente from "./components/AlumnoExpediente";
+import AccionesRapidas from "./components/AccionesRapidas";
+import DashboardHeader from "./components/DashboardHeader";
 import ResumenCobranza from "./components/ResumenCobranza";
 import { useState, useEffect, useCallback } from "react";
 import "./index.css";
@@ -2134,7 +2136,9 @@ function ViewAlumnos({ showToast }) {
           onChange={(e) => setBusqueda(e.target.value)}
         />
       </div>
+      <DashboardHeader />
       <ResumenCobranza estadisticas={estadisticas} />
+      <AccionesRapidas />
       <div className="filter-row">
         {["todos", "al_corriente", "vence_pronto", "atrasado", "sin_pago"].map(
           (f) => (

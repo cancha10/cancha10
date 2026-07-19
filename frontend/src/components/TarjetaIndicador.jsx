@@ -17,6 +17,7 @@ export default function TarjetaIndicador({ icono, titulo, valor }) {
           fontSize: 28,
           fontWeight: "bold",
           marginTop: 8,
+          color: "#111",
         }}
       >
         {valor}
