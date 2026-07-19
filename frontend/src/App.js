@@ -1,4 +1,5 @@
 import AlumnoExpediente from "./components/AlumnoExpediente";
+import ResumenCobranza from "./components/ResumenCobranza";
 import { useState, useEffect, useCallback } from "react";
 import "./index.css";
 import Api from "./api";
@@ -2058,7 +2059,13 @@ function ViewAlumnos({ showToast }) {
   useEffect(() => {
     cargar();
   }, []);
-
+  const estadisticas = {
+    total: alumnos.length,
+    alCorriente: alumnos.filter((a) => a.estado_pago === "al_corriente").length,
+    vencePronto: alumnos.filter((a) => a.estado_pago === "vence_pronto").length,
+    atrasados: alumnos.filter((a) => a.estado_pago === "atrasado").length,
+    sinPago: alumnos.filter((a) => a.estado_pago === "sin_pago").length,
+  };
   const filtrados = alumnos.filter(
     (a) =>
       (!busqueda || a.n.toLowerCase().includes(busqueda.toLowerCase())) &&
@@ -2127,6 +2134,7 @@ function ViewAlumnos({ showToast }) {
           onChange={(e) => setBusqueda(e.target.value)}
         />
       </div>
+      <ResumenCobranza estadisticas={estadisticas} />
       <div className="filter-row">
         {["todos", "al_corriente", "vence_pronto", "atrasado", "sin_pago"].map(
           (f) => (
