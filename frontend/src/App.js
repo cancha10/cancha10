@@ -2138,6 +2138,7 @@ function ViewAlumnos({ showToast }) {
       </div>
       <DashboardHeader />
       <ResumenCobranza estadisticas={estadisticas} />
+
       <AccionesRapidas />
       <div className="filter-row">
         {["todos", "al_corriente", "vence_pronto", "atrasado", "sin_pago"].map(
