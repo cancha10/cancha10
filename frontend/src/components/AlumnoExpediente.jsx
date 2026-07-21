@@ -1117,13 +1117,74 @@ export default function AlumnoExpediente({
           </>
         )}
         {tab === "progreso" && (
-          <div className="card" style={{ marginBottom: 10 }}>
-            <div className="card-label">Progreso deportivo</div>
+          <>
+            <div className="card" style={{ marginBottom: 10 }}>
+              <div className="card-label">🎯 Objetivo actual</div>
 
-            <div style={{ fontSize: 13, color: "var(--gr)", marginTop: 8 }}>
-              Aquí vivirá el seguimiento deportivo del alumno.
+              <div
+                style={{
+                  marginTop: 10,
+                  fontSize: 15,
+                  fontWeight: 600,
+                }}
+              >
+                Mejorar consistencia del segundo saque.
+              </div>
+
+              <button
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginTop: 12,
+                  background: "var(--gold)",
+                  border: "none",
+                  borderRadius: 8,
+                  color: "var(--bk)",
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: 15,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                }}
+              >
+                Actualizar
+              </button>
             </div>
-          </div>
+
+            <div className="card">
+              <div className="card-label">📝 Última observación</div>
+
+              <div
+                style={{
+                  marginTop: 10,
+                  lineHeight: 1.5,
+                }}
+              >
+                Excelente actitud durante la sesión.
+                <br />
+                Empieza a subir a la red con mayor confianza.
+              </div>
+
+              <button
+                style={{
+                  width: "100%",
+                  padding: "12px",
+                  marginTop: 12,
+                  background: "var(--gold)",
+                  border: "none",
+                  borderRadius: 8,
+                  color: "var(--bk)",
+                  fontFamily: "'Barlow Condensed', sans-serif",
+                  fontSize: 15,
+                  fontWeight: 800,
+                  cursor: "pointer",
+                  textTransform: "uppercase",
+                }}
+              >
+                Registrar observación
+              </button>
+            </div>
+          </>
         )}
         {tab === "pagos" && (
           <div className="card" style={{ marginBottom: 10 }}>
