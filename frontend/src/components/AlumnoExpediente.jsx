@@ -605,6 +605,7 @@ export default function AlumnoExpediente({
   const Tabs = useMemo(
     () => [
       { id: "datos", label: "👤 Datos" },
+      { id: "progreso", label: "🎾 Progreso" },
       { id: "pagos", label: "💳 Pagos" },
       { id: "asistencias", label: "📅 Asistencias" },
       { id: "clases", label: "🎾 Clases" },
@@ -1115,7 +1116,15 @@ export default function AlumnoExpediente({
             </div>
           </>
         )}
+        {tab === "progreso" && (
+          <div className="card" style={{ marginBottom: 10 }}>
+            <div className="card-label">Progreso deportivo</div>
 
+            <div style={{ fontSize: 13, color: "var(--gr)", marginTop: 8 }}>
+              Aquí vivirá el seguimiento deportivo del alumno.
+            </div>
+          </div>
+        )}
         {tab === "pagos" && (
           <div className="card" style={{ marginBottom: 10 }}>
             <button
