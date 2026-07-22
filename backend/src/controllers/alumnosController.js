@@ -259,7 +259,48 @@ const agregarFeedback = async (req, res) => {
     res.status(500).json({ error: "Error del servidor" });
   }
 };
+const asistenciaAlumno = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    const alumno = await query(
+      `
+      SELECT id
+      FROM alumnos
+      WHERE usuario_id = $1
+      `,
+      [id],
+    );
+
+    if (!alumno.rows.length) {
+      return res.status(404).json({ error: "Alumno no encontrado" });
+    }
+
+    const alumnoId = alumno.rows[0].id;
+
+    const historial = await query(
+      `
+      SELECT
+        s.fecha,
+        a.estado,
+        c.id AS clase_id
+      FROM asistencia a
+      INNER JOIN sesiones s
+        ON s.id = a.sesion_id
+      INNER JOIN clases c
+        ON c.id = s.clase_id
+      WHERE a.alumno_id = $1
+      ORDER BY s.fecha DESC
+      `,
+      [alumnoId],
+    );
+
+    res.json(historial.rows);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Error del servidor" });
+  }
+};
 module.exports = {
   listarAlumnos,
   obtenerAlumno,
@@ -269,4 +310,5 @@ module.exports = {
   actualizarFicha,
   listarFeedback,
   agregarFeedback,
+  asistenciaAlumno,
 };

@@ -474,9 +474,13 @@ export default function AlumnoExpediente({
   const [showFeedback, setShowFeedback] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
   const [tab, setTab] = useState("datos");
+  const [objetivoActual, setObjetivoActual] = useState(
+    "Mejorar consistencia del segundo saque.",
+  );
 
   const [feedback, setFeedback] = useState([]);
   const [pagos, setPagos] = useState([]);
+  const [asistencias, setAsistencias] = useState([]);
   const [showRegistrarPago, setShowRegistrarPago] = useState(false);
   const [detalle, setDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(true);
@@ -501,11 +505,13 @@ export default function AlumnoExpediente({
     Promise.all([
       Api.listarFeedback(alumno.id).catch(() => []),
       Api.obtenerAlumno(alumno.id).catch(() => null),
+      Api.asistenciaAlumno(alumno.id).catch(() => []),
     ])
-      .then(([fb, det]) => {
+      .then(([fb, det, asist]) => {
         setFeedback(fb || []);
         setDetalle(det);
         setPagos(det?.historial_pagos || []);
+        setAsistencias(asist || []);
       })
       .finally(() => setLoadingDetalle(false));
   };
@@ -1284,11 +1290,53 @@ export default function AlumnoExpediente({
         {tab === "asistencias" && (
           <div className="card" style={{ marginBottom: 10 }}>
             <div className="card-label">Asistencias</div>
-            <div style={{ fontSize: 13, color: "var(--gr)", lineHeight: 1.5 }}>
-              Esta sección queda preparada para mostrar asistencia por alumno.
-              La conectaremos al endpoint de sesiones/asistencia en la siguiente
-              iteración.
-            </div>
+
+            {asistencias.length === 0 ? (
+              <div
+                style={{
+                  fontSize: 13,
+                  color: "var(--gr)",
+                  lineHeight: 1.5,
+                }}
+              >
+                Aún no hay asistencias registradas.
+              </div>
+            ) : (
+              <div>
+                {asistencias.map((a, i) => (
+                  <div
+                    key={i}
+                    className="pago-row"
+                    style={{ padding: "10px 0" }}
+                  >
+                    <div>
+                      <strong>
+                        {a.fecha
+                          ? new Date(a.fecha).toLocaleDateString("es-MX", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "-"}
+                      </strong>
+                      <br />
+                      <span style={{ color: "var(--gr)", fontSize: 12 }}>
+                        {a.clase || a.grupo || "Clase"}
+                      </span>
+                    </div>
+
+                    <div
+                      style={{
+                        color: a.asistio ? "#37d67a" : "#ff5c5c",
+                        fontWeight: 700,
+                      }}
+                    >
+                      {a.asistio ? "✓ Asistió" : "✕ Ausente"}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
