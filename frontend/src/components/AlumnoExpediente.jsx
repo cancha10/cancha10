@@ -1290,6 +1290,48 @@ export default function AlumnoExpediente({
         {tab === "asistencias" && (
           <div className="card" style={{ marginBottom: 10 }}>
             <div className="card-label">Asistencias</div>
+            <div className="pago-row" style={{ marginBottom: 12 }}>
+              <div>
+                <strong>{asistencias.length}</strong>
+
+                <br />
+
+                <span style={{ color: "var(--gr)", fontSize: 12 }}>
+                  registros
+                </span>
+              </div>
+
+              <div style={{ textAlign: "right" }}>
+                <strong style={{ color: "#37d67a" }}>
+                  {asistencias.filter((a) => a.estado === "asistio").length}
+                </strong>
+
+                <span
+                  style={{
+                    color: "var(--gr)",
+                    fontSize: 12,
+                    display: "block",
+                  }}
+                >
+                  asistencias
+                </span>
+              </div>
+              <div style={{ textAlign: "right" }}>
+                <strong style={{ color: "#ff5c5c" }}>
+                  {asistencias.filter((a) => a.estado === "falta").length}
+                </strong>
+
+                <span
+                  style={{
+                    color: "var(--gr)",
+                    fontSize: 12,
+                    display: "block",
+                  }}
+                >
+                  faltas
+                </span>
+              </div>
+            </div>
 
             {asistencias.length === 0 ? (
               <div
