@@ -1327,11 +1327,11 @@ export default function AlumnoExpediente({
 
                     <div
                       style={{
-                        color: a.asistio ? "#37d67a" : "#ff5c5c",
+                        color: a.estado === "asistio" ? "#37d67a" : "#ff5c5c",
                         fontWeight: 700,
                       }}
                     >
-                      {a.asistio ? "✓ Asistió" : "✕ Ausente"}
+                      {a.estado === "asistio" ? "✓ Asistió" : "✕ Ausente"}
                     </div>
                   </div>
                 ))}

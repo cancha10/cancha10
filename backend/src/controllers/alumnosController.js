@@ -280,17 +280,22 @@ const asistenciaAlumno = async (req, res) => {
 
     const historial = await query(
       `
-      SELECT
-        s.fecha,
-        a.estado,
-        c.id AS clase_id
-      FROM asistencia a
-      INNER JOIN sesiones s
-        ON s.id = a.sesion_id
-      INNER JOIN clases c
-        ON c.id = s.clase_id
-      WHERE a.alumno_id = $1
-      ORDER BY s.fecha DESC
+     SELECT
+  s.fecha,
+  a.estado,
+  c.id AS clase_id,
+  g.nombre AS clase,
+  c.hora_inicio,
+  c.hora_fin
+FROM asistencia a
+INNER JOIN sesiones s
+  ON s.id = a.sesion_id
+INNER JOIN clases c
+  ON c.id = s.clase_id
+INNER JOIN grupos g
+  ON g.id = c.grupo_id
+WHERE a.alumno_id = $1
+ORDER BY s.fecha DESC
       `,
       [alumnoId],
     );
