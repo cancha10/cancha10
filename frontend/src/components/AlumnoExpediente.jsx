@@ -1323,6 +1323,13 @@ export default function AlumnoExpediente({
                       <span style={{ color: "var(--gr)", fontSize: 12 }}>
                         {a.clase || a.grupo || "Clase"}
                       </span>
+                      <br />
+
+                      <span style={{ color: "var(--gr)", fontSize: 12 }}>
+                        {a.hora_inicio && a.hora_fin
+                          ? `${a.hora_inicio.slice(0, 5)} - ${a.hora_fin.slice(0, 5)}`
+                          : ""}
+                      </span>
                     </div>
 
                     <div
