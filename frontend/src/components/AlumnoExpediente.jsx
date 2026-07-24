@@ -497,7 +497,7 @@ export default function AlumnoExpediente({
   const pagoEstado = normalizarPagoTag(
     alumno.pago || alumno.ultimo_pago_estado,
   );
-  const monto = obtenerMontoAlumno(alumno);
+  const monto = obtenerMontoAlumno(alumno) || Number(pagos[0]?.monto || 0);
 
   const cargarDetalle = () => {
     setLoadingDetalle(true);
@@ -618,7 +618,7 @@ export default function AlumnoExpediente({
     ],
     [],
   );
-
+  console.log("ALUMNO EXPEDIENTE:", alumno);
   return (
     <div
       className="overlay"
@@ -696,8 +696,8 @@ export default function AlumnoExpediente({
             </div>
             <div className="stat-lbl">
               {alumno.tipo_cobro === "por_sesion" ||
-              alumno.paquete_tipo === "particular"
-                ? "Por sesión"
+              alumno.tipo_clase === "particular"
+                ? "Pago por paquete"
                 : "Mensual"}
             </div>
           </div>
@@ -925,7 +925,9 @@ export default function AlumnoExpediente({
               >
                 <div>
                   <div style={{ fontSize: 12, color: "var(--gr)" }}>
-                    Día de pago
+                    {(detalle?.tipo_clase || alumno.tipo_clase) === "particular"
+                      ? "Renovación"
+                      : "Día de pago"}
                   </div>
 
                   {!editandoDiaPago ? (
@@ -938,11 +940,18 @@ export default function AlumnoExpediente({
                         marginTop: 2,
                       }}
                     >
-                      Día{" "}
-                      <span style={{ color: "var(--gold)" }}>
-                        {alumno.dia_pago || alumno.dia_pago_efectivo || "—"}
-                      </span>{" "}
-                      de cada mes
+                      {(detalle?.tipo_clase || alumno.tipo_clase) ===
+                      "particular" ? (
+                        "Renovación por paquete"
+                      ) : (
+                        <>
+                          Día{" "}
+                          <span style={{ color: "var(--gold)" }}>
+                            {alumno.dia_pago || alumno.dia_pago_efectivo || "-"}
+                          </span>{" "}
+                          de cada mes
+                        </>
+                      )}
                     </div>
                   ) : (
                     <div
@@ -1009,22 +1018,23 @@ export default function AlumnoExpediente({
                   )}
                 </div>
 
-                {!editandoDiaPago && (
-                  <button
-                    onClick={() => setEditandoDiaPago(true)}
-                    style={{
-                      padding: "5px 10px",
-                      borderRadius: 6,
-                      border: "1px solid #2A2A2A",
-                      background: "none",
-                      color: "var(--gr)",
-                      fontSize: 12,
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✏️ Día
-                  </button>
-                )}
+                {(detalle?.tipo_clase || alumno.tipo_clase) !== "particular" &&
+                  !editandoDiaPago && (
+                    <button
+                      onClick={() => setEditandoDiaPago(true)}
+                      style={{
+                        padding: "5px 10px",
+                        borderRadius: 6,
+                        border: "1px solid #2A2A2A",
+                        background: "none",
+                        color: "var(--gr)",
+                        fontSize: 12,
+                        cursor: "pointer",
+                      }}
+                    >
+                      ✏️ Día
+                    </button>
+                  )}
               </div>
             </div>
 
@@ -1270,20 +1280,6 @@ export default function AlumnoExpediente({
                 </div>
               ))
             )}
-
-            <div
-              style={{
-                marginTop: 12,
-                fontSize: 12,
-                color: "var(--gr)",
-                lineHeight: 1.45,
-              }}
-            >
-              El botón{" "}
-              <strong style={{ color: "var(--gold)" }}>Registrar pago</strong>{" "}
-              entra en el siguiente componente. Esta pestaña ya deja preparado
-              el Expediente C10.
-            </div>
           </div>
         )}
 
