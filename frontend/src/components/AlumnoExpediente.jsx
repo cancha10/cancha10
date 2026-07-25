@@ -618,7 +618,7 @@ export default function AlumnoExpediente({
     ],
     [],
   );
-  console.log("ALUMNO EXPEDIENTE:", alumno);
+
   return (
     <div
       className="overlay"
