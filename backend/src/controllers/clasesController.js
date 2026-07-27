@@ -158,7 +158,12 @@ const crearClase = async (req, res) => {
       return res.status(400).json({ error: "grupo, dias, hi y hf requeridos" });
     const grupoRes = await query(
       "INSERT INTO grupos (nombre, nivel_id, tipo, capacidad) VALUES ($1,$2,$3,$4) RETURNING id",
-      [grupo, nivel_id || null, tipo || "grupal", capacidad || null],
+      [
+        grupo,
+        nivel_id || null,
+        tipo === "Particular" ? "particular" : "grupal",
+        capacidad || null,
+      ],
     );
     const grupoId = grupoRes.rows[0].id;
     for (const dia of dias)
