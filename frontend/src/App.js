@@ -526,7 +526,7 @@ function WhatsAppButton() {
 // ── DateBar ───────────────────────────────────────────────────────────
 function DateBar({ selected, onChange }) {
   const days = [];
-  for (let i = 0; i < 7; i++) {
+  for (let i = -3; i <= 3; i++) {
     const d = new Date();
     d.setDate(d.getDate() + i);
     days.push({
