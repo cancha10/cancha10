@@ -37,16 +37,25 @@ const obtenerAlumno = async (req, res) => {
       [id],
     );
 
-    const inscripcion = await query(
-      `SELECT *
-       FROM inscripciones i
-       WHERE i.alumno_id = (
-         SELECT id
-         FROM alumnos
-         WHERE usuario_id = $1
-       )
-       AND i.estado = 'activa'
-       LIMIT 1`,
+    const inscripciones = await query(
+      `SELECT
+      i.*,
+      g.nombre AS grupo,
+      p.nombre AS paquete,
+      p.tipo AS tipo_paquete,
+      p.clases_semana,
+      p.precio_mensual,
+      p.precio_clase
+   FROM inscripciones i
+   LEFT JOIN grupos g ON g.id = i.grupo_id
+   LEFT JOIN paquetes p ON p.id = i.paquete_id
+   WHERE i.alumno_id = (
+      SELECT id
+      FROM alumnos
+      WHERE usuario_id = $1
+   )
+   AND i.estado = 'activa'
+   ORDER BY i.created_at ASC`,
       [id],
     );
 
@@ -54,7 +63,7 @@ const obtenerAlumno = async (req, res) => {
     let fechaVencimiento = null;
     let dias = null;
 
-    if (inscripcion.rows.length) {
+    if (inscripciones.rows.length) {
       const ultimoPago = historial.rows.find(
         (pago) => pago.estado === "pagado" && pago.periodo_fin,
       );
@@ -86,7 +95,8 @@ const obtenerAlumno = async (req, res) => {
     res.json({
       ...alumno.rows[0],
       historial_pagos: historial.rows,
-      inscripcion: inscripcion.rows[0] || null,
+      inscripcion: inscripciones.rows[0] || null,
+      inscripciones: inscripciones.rows,
       estado_pago: estadoPago,
       fecha_vencimiento: fechaVencimiento,
       dias_estado: dias,

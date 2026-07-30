@@ -470,6 +470,11 @@ export default function AlumnoExpediente({
   showToast,
 }) {
   const [confirmar, setConfirmar] = useState(false);
+  const [showAgregarInscripcion, setShowAgregarInscripcion] = useState(false);
+  const [clasesDisponibles, setClasesDisponibles] = useState([]);
+  const [paquetesDisponibles, setPaquetesDisponibles] = useState([]);
+  const [paqueteSeleccionado, setPaqueteSeleccionado] = useState("");
+  const [grupoSeleccionado, setGrupoSeleccionado] = useState("");
   const [showFicha, setShowFicha] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
@@ -518,6 +523,13 @@ export default function AlumnoExpediente({
 
   useEffect(() => {
     cargarDetalle();
+    Api.horario()
+      .then(setClasesDisponibles)
+      .catch(() => setClasesDisponibles([]));
+
+    Api.listarPaquetes()
+      .then(setPaquetesDisponibles)
+      .catch(() => setPaquetesDisponibles([]));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [alumno.id]);
 
@@ -822,6 +834,60 @@ export default function AlumnoExpediente({
                 </span>
               </div>
             </div>
+            {Array.isArray(detalle?.inscripciones) &&
+              detalle.inscripciones.length > 0 && (
+                <div className="card" style={{ marginBottom: 10 }}>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--gr)",
+                      marginBottom: 10,
+                    }}
+                  >
+                    INSCRIPCIONES ACTIVAS
+                  </div>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setShowAgregarInscripcion(true)}
+                    style={{
+                      width: "100%",
+                      marginBottom: 10,
+                    }}
+                  >
+                    + Agregar clase
+                  </button>
+                  {detalle.inscripciones.map((inscripcion) => (
+                    <div
+                      key={inscripcion.id}
+                      style={{
+                        padding: "10px 0",
+                        borderBottom: "1px solid #2A2A2A",
+                      }}
+                    >
+                      <div
+                        style={{
+                          color: "var(--wh)",
+                          fontSize: 14,
+                          fontWeight: 700,
+                        }}
+                      >
+                        {inscripcion.grupo || "Clase sin grupo"}
+                      </div>
+
+                      <div
+                        style={{
+                          color: "var(--gold)",
+                          fontSize: 13,
+                          marginTop: 3,
+                        }}
+                      >
+                        {inscripcion.paquete || "Sin paquete"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             {/* Estado financiero */}
             <div
               className="card"
@@ -1594,6 +1660,84 @@ export default function AlumnoExpediente({
             onClose={() => setShowFeedback(false)}
             onGuardar={agregarFeedback}
           />
+        )}
+        {showAgregarInscripcion && (
+          <div
+            className="overlay"
+            onClick={(e) =>
+              e.target === e.currentTarget && setShowAgregarInscripcion(false)
+            }
+          >
+            <div className="drawer" style={{ maxHeight: "70dvh" }}>
+              <div className="drawer-handle" />
+
+              <div className="drawer-title">Agregar inscripción</div>
+              <div className="field" style={{ marginTop: 12 }}>
+                <div className="field">
+                  <label>Grupo</label>
+
+                  <select
+                    value={grupoSeleccionado}
+                    onChange={(e) => setGrupoSeleccionado(e.target.value)}
+                    style={{
+                      width: "100%",
+                      padding: "11px 13px",
+                      borderRadius: 8,
+                      border: "1px solid #2A2A2A",
+                      background: "var(--bk3)",
+                      color: "var(--wh)",
+                    }}
+                  >
+                    <option value="">Selecciona un grupo</option>
+
+                    {clasesDisponibles.map((grupo) => (
+                      <option key={grupo.id} value={grupo.id}>
+                        {grupo.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <label>Paquete</label>
+
+                <select
+                  value={paqueteSeleccionado}
+                  onChange={(e) => setPaqueteSeleccionado(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "11px 13px",
+                    borderRadius: 8,
+                    border: "1px solid #2A2A2A",
+                    background: "var(--bk3)",
+                    color: "var(--wh)",
+                  }}
+                >
+                  <option value="">Selecciona un paquete</option>
+
+                  {paquetesDisponibles.map((paquete) => (
+                    <option key={paquete.id} value={paquete.id}>
+                      {paquete.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                className="btn-save"
+                onClick={() => setShowAgregarInscripcion(false)}
+              >
+                Guardar
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowAgregarInscripcion(false)}
+                style={{ marginTop: 10, width: "100%" }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
