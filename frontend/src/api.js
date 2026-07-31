@@ -92,6 +92,12 @@ const Api = {
   restablecerPassword: (id) =>
     apiCall(`/alumnos/${id}/restablecer-password`, { method: "PATCH" }),
   asistenciaAlumno: (id) => apiCall(`/alumnos/${id}/asistencia`),
+  // --- Inscripciones ---
+  crearInscripcion: (datos) =>
+    apiCall("/inscripciones", {
+      method: "POST",
+      body: JSON.stringify(datos),
+    }),
 
   // ── Ficha técnica ───────────────────────────────────────────────────
   obtenerFicha: (id) => apiCall(`/alumnos/${id}/ficha`),

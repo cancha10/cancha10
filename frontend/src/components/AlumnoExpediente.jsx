@@ -1690,9 +1690,12 @@ export default function AlumnoExpediente({
                   >
                     <option value="">Selecciona un grupo</option>
 
-                    {clasesDisponibles.map((grupo) => (
-                      <option key={grupo.id} value={grupo.id}>
-                        {grupo.nombre}
+                    {clasesDisponibles.map((clase) => (
+                      <option
+                        key={clase.clase_id || clase.id}
+                        value={clase.grupo_id || clase.id}
+                      >
+                        {clase.grupo || clase.nombre || "Grupo sin nombre"}
                       </option>
                     ))}
                   </select>
@@ -1724,7 +1727,33 @@ export default function AlumnoExpediente({
               <button
                 type="button"
                 className="btn-save"
-                onClick={() => setShowAgregarInscripcion(false)}
+                onClick={async () => {
+                  if (!grupoSeleccionado || !paqueteSeleccionado) {
+                    alert("Selecciona un grupo y un paquete");
+                    return;
+                  }
+
+                  try {
+                    await Api.crearInscripcion({
+                      alumno_id: detalle.alumno_id,
+                      grupo_id: Number(grupoSeleccionado),
+                      paquete_id: Number(paqueteSeleccionado),
+                      fecha_inicio: new Date().toISOString().split("T")[0],
+                      dia_pago:
+                        alumno.dia_pago_efectivo || alumno.dia_pago || 1,
+                    });
+
+                    setShowAgregarInscripcion(false);
+                    setGrupoSeleccionado("");
+                    setPaqueteSeleccionado("");
+
+                    await cargarDetalle();
+                    onActualizar?.();
+                    showToast?.("Inscripción agregada correctamente");
+                  } catch (e) {
+                    alert(e.message || "No se pudo agregar la inscripción");
+                  }
+                }}
               >
                 Guardar
               </button>
