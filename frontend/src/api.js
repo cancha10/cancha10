@@ -168,6 +168,11 @@ const Api = {
       method: "PATCH",
       body: JSON.stringify({ estado }),
     }),
+  editarPago: (id, datos) =>
+    apiCall(`/pagos/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(datos),
+    }),
   subirComprobante: (pagoId, file) =>
     apiUpload(`/pagos/${pagoId}/comprobante`, file),
 

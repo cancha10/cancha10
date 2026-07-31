@@ -302,14 +302,23 @@ function FormFeedbackLocal({ onClose, onGuardar }) {
     </div>
   );
 }
-function RegistrarPagoModal({ alumno, onClose, onGuardar }) {
+function RegistrarPagoModal({
+  alumno,
+  onClose,
+  onGuardar,
+  pagoInicial = null,
+}) {
   const [form, setForm] = useState({
-    tipo: "mensualidad",
-    monto: alumno.monto || "",
-    metodo_pago: "efectivo",
-    periodo_inicio: "",
-    periodo_fin: "",
-    notas: "",
+    tipo: pagoInicial?.tipo || "mensualidad",
+    monto: pagoInicial?.monto || alumno.monto || "",
+    metodo_pago: pagoInicial?.metodo_pago || "efectivo",
+    periodo_inicio: pagoInicial?.periodo_inicio
+      ? pagoInicial.periodo_inicio.split("T")[0]
+      : "",
+    periodo_fin: pagoInicial?.periodo_fin
+      ? pagoInicial.periodo_fin.split("T")[0]
+      : "",
+    notas: pagoInicial?.notas || "",
   });
 
   const [guardando, setGuardando] = useState(false);
@@ -487,6 +496,8 @@ export default function AlumnoExpediente({
   const [pagos, setPagos] = useState([]);
   const [asistencias, setAsistencias] = useState([]);
   const [showRegistrarPago, setShowRegistrarPago] = useState(false);
+  const [showEditarPago, setShowEditarPago] = useState(false);
+  const [pagoEditando, setPagoEditando] = useState(null);
   const [detalle, setDetalle] = useState(null);
   const [loadingDetalle, setLoadingDetalle] = useState(true);
 
@@ -1342,6 +1353,17 @@ export default function AlumnoExpediente({
                       </div>
                     )}
                   </div>
+                  <button
+                    type="button"
+                    className="btn-mini"
+                    onClick={() => {
+                      setPagoEditando(p);
+                      setShowEditarPago(true);
+                    }}
+                  >
+                    ✏️ Editar
+                  </button>
+
                   <span className={`pago-tag tag-${p.estado}`}>{p.estado}</span>
                 </div>
               ))

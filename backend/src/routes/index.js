@@ -167,6 +167,7 @@ router.patch(
   soloAdmin,
   pagosCtrl.actualizarEstado,
 );
+router.put("/pagos/:id", authMiddleware, soloAdmin, pagosCtrl.editarPago);
 router.post(
   "/pagos/:id/comprobante",
   authMiddleware,
