@@ -159,6 +159,30 @@ const editarPago = async (req, res) => {
     });
   }
 };
+const eliminarPago = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const result = await query("DELETE FROM pagos WHERE id=$1 RETURNING *", [
+      id,
+    ]);
+
+    if (!result.rows.length) {
+      return res.status(404).json({
+        error: "Pago no encontrado",
+      });
+    }
+
+    res.json({
+      mensaje: "Pago eliminado",
+    });
+  } catch (err) {
+    console.error("Error eliminando pago:", err);
+    res.status(500).json({
+      error: "Error del servidor",
+    });
+  }
+};
 const subirComprobante = async (req, res) => {
   try {
     const { id } = req.params;
@@ -188,5 +212,6 @@ module.exports = {
   misPagos,
   actualizarEstado,
   editarPago,
+  eliminarPago,
   subirComprobante,
 };

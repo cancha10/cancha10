@@ -168,6 +168,7 @@ router.patch(
   pagosCtrl.actualizarEstado,
 );
 router.put("/pagos/:id", authMiddleware, soloAdmin, pagosCtrl.editarPago);
+router.delete("/pagos/:id", authMiddleware, soloAdmin, pagosCtrl.eliminarPago);
 router.post(
   "/pagos/:id/comprobante",
   authMiddleware,

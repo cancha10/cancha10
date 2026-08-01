@@ -1363,7 +1363,23 @@ export default function AlumnoExpediente({
                   >
                     ✏️ Editar
                   </button>
+                  <button
+                    type="button"
+                    className="btn-mini"
+                    style={{ marginLeft: 8, color: "#ff5b5b" }}
+                    onClick={async () => {
+                      if (!window.confirm("¿Eliminar este pago?")) return;
 
+                      try {
+                        await Api.eliminarPago(p.id);
+                        await cargarDetalle();
+                      } catch (e) {
+                        alert(e.message || "No se pudo eliminar");
+                      }
+                    }}
+                  >
+                    🗑 Eliminar
+                  </button>
                   <span className={`pago-tag tag-${p.estado}`}>{p.estado}</span>
                 </div>
               ))
@@ -1656,6 +1672,30 @@ export default function AlumnoExpediente({
             alumno={{ ...alumno, ...detalle }}
             onClose={() => setShowRegistrarPago(false)}
             onGuardar={registrarPago}
+          />
+        )}
+        {showEditarPago && pagoEditando && (
+          <RegistrarPagoModal
+            alumno={{ ...alumno, ...detalle }}
+            pagoInicial={pagoEditando}
+            onClose={() => {
+              setShowEditarPago(false);
+              setPagoEditando(null);
+            }}
+            onGuardar={async (datos) => {
+              try {
+                await Api.editarPago(pagoEditando.id, datos);
+
+                setShowEditarPago(false);
+                setPagoEditando(null);
+
+                await cargarDetalle();
+                onActualizar?.();
+                showToast?.("Pago actualizado correctamente");
+              } catch (e) {
+                alert(e.message || "No se pudo actualizar el pago");
+              }
+            }}
           />
         )}
         {showEditar && (

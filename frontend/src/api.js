@@ -173,6 +173,7 @@ const Api = {
       method: "PUT",
       body: JSON.stringify(datos),
     }),
+  eliminarPago: (id) => apiCall(`/pagos/${id}`, { method: "DELETE" }),
   subirComprobante: (pagoId, file) =>
     apiUpload(`/pagos/${pagoId}/comprobante`, file),
 
