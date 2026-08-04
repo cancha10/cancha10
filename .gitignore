@@ -23,3 +23,5 @@ Thumbs.db
 # Build
 frontend/build/
 backend/dist/
+.vercel
+.env*
