@@ -99,6 +99,11 @@ const Api = {
       body: JSON.stringify(datos),
     }),
 
+  darDeBajaInscripcion: (id, datos = {}) =>
+    apiCall(`/inscripciones/${id}/baja`, {
+      method: "PATCH",
+      body: JSON.stringify(datos),
+    }),
   // ── Ficha técnica ───────────────────────────────────────────────────
   obtenerFicha: (id) => apiCall(`/alumnos/${id}/ficha`),
   actualizarFicha: (id, datos) =>

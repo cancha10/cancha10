@@ -872,28 +872,102 @@ export default function AlumnoExpediente({
                     <div
                       key={inscripcion.id}
                       style={{
-                        padding: "10px 0",
+                        padding: "12px 0",
                         borderBottom: "1px solid #2A2A2A",
                       }}
                     >
                       <div
                         style={{
-                          color: "var(--wh)",
-                          fontSize: 14,
-                          fontWeight: 700,
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "flex-start",
+                          gap: 12,
                         }}
                       >
-                        {inscripcion.grupo || "Clase sin grupo"}
-                      </div>
+                        <div style={{ flex: 1 }}>
+                          <div
+                            style={{
+                              color: "var(--wh)",
+                              fontSize: 14,
+                              fontWeight: 700,
+                            }}
+                          >
+                            {inscripcion.grupo || "Clase sin grupo"}
+                          </div>
 
-                      <div
-                        style={{
-                          color: "var(--gold)",
-                          fontSize: 13,
-                          marginTop: 3,
-                        }}
-                      >
-                        {inscripcion.paquete || "Sin paquete"}
+                          <div
+                            style={{
+                              color: "var(--gold)",
+                              fontSize: 13,
+                              marginTop: 3,
+                            }}
+                          >
+                            {inscripcion.paquete || "Sin paquete"}
+                          </div>
+
+                          {inscripcion.fecha_inicio && (
+                            <div
+                              style={{
+                                color: "var(--gr)",
+                                fontSize: 11,
+                                marginTop: 4,
+                              }}
+                            >
+                              Desde: {fmtFechaCorta(inscripcion.fecha_inicio)}
+                            </div>
+                          )}
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const confirmarBaja = window.confirm(
+                              `¿Dar de baja la inscripción "${
+                                inscripcion.grupo || "Clase sin grupo"
+                              }"?`,
+                            );
+
+                            if (!confirmarBaja) return;
+
+                            const motivo = window.prompt(
+                              "Motivo de la baja (opcional):",
+                              "",
+                            );
+
+                            if (motivo === null) return;
+
+                            try {
+                              await Api.darDeBajaInscripcion(inscripcion.id, {
+                                fecha_fin: new Date()
+                                  .toISOString()
+                                  .split("T")[0],
+                                motivo: motivo.trim() || null,
+                              });
+
+                              await cargarDetalle();
+                              onActualizar?.();
+                              showToast?.("Inscripción dada de baja ✓");
+                            } catch (e) {
+                              alert(
+                                e.message ||
+                                  "No se pudo dar de baja la inscripción",
+                              );
+                            }
+                          }}
+                          style={{
+                            padding: "6px 9px",
+                            borderRadius: 6,
+                            border: "1px solid var(--danger)",
+                            background: "transparent",
+                            color: "var(--danger)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          Dar de baja
+                        </button>
                       </div>
                     </div>
                   ))}

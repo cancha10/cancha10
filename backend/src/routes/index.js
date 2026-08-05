@@ -126,6 +126,12 @@ router.patch(
   inscripcionesCtrl.renovar,
 );
 router.patch(
+  "/inscripciones/:id/baja",
+  authMiddleware,
+  soloAdmin,
+  inscripcionesCtrl.darDeBaja,
+);
+router.patch(
   "/inscripciones/:id/dia-pago",
   authMiddleware,
   soloAdmin,
