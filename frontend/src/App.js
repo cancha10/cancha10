@@ -2068,7 +2068,52 @@ function ViewAlumnos({ showToast }) {
     atrasados: alumnos.filter((a) => a.estado_pago === "atrasado").length,
     sinPago: alumnos.filter((a) => a.estado_pago === "sin_pago").length,
   };
-  const filtrados = alumnos.filter(
+  const prioridadEstado = {
+    atrasado: 4,
+    vence_pronto: 3,
+    sin_pago: 2,
+    al_corriente: 1,
+  };
+
+  const alumnosUnicos = Object.values(
+    alumnos.reduce((acumulado, alumno) => {
+      const clave = alumno.usuario_id || alumno.id;
+
+      if (!acumulado[clave]) {
+        acumulado[clave] = {
+          ...alumno,
+          grupos: [],
+        };
+      }
+
+      const grupoActual =
+        alumno.grupo && alumno.grupo !== "Sin grupo" ? alumno.grupo : null;
+
+      if (grupoActual && !acumulado[clave].grupos.includes(grupoActual)) {
+        acumulado[clave].grupos.push(grupoActual);
+      }
+
+      const estadoGuardado = acumulado[clave].estado_pago || "al_corriente";
+
+      const estadoNuevo = alumno.estado_pago || "al_corriente";
+
+      if (
+        (prioridadEstado[estadoNuevo] || 0) >
+        (prioridadEstado[estadoGuardado] || 0)
+      ) {
+        acumulado[clave] = {
+          ...acumulado[clave],
+          estado_pago: alumno.estado_pago,
+          dias_estado: alumno.dias_estado,
+          fecha_vencimiento: alumno.fecha_vencimiento,
+          monto: alumno.monto,
+        };
+      }
+
+      return acumulado;
+    }, {}),
+  );
+  const filtrados = alumnosUnicos.filter(
     (a) =>
       (!busqueda || a.n.toLowerCase().includes(busqueda.toLowerCase())) &&
       (filtro === "todos" || a.estado_pago === filtro),
@@ -2126,7 +2171,7 @@ function ViewAlumnos({ showToast }) {
           + Nuevo
         </button>
       </div>
-      <div className="sec-sub">{alumnos.length} alumnos activos</div>
+      <div className="sec-sub">{alumnosUnicos.length} alumnos activos</div>
       {error && <div className="error-msg">{error}</div>}
       <div className="search-wrap">
         <span className="search-icon">🔍</span>
@@ -2173,9 +2218,7 @@ function ViewAlumnos({ showToast }) {
                 <div className="avatar">{inits(a.n)}</div>
                 <div style={{ flex: 1 }}>
                   <div className="alumno-name">{a.n}</div>
-                  <div className="alumno-detail">
-                    {a.grupo || "Sin grupo"} · {a.nivel}
-                  </div>
+                  "alumno-detail"
                 </div>
                 <div className="text-right">
                   <div
