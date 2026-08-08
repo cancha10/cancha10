@@ -2029,26 +2029,52 @@ function ViewAlumnos({ showToast }) {
     setError("");
     Api.listarAlumnos()
       .then((data) => {
-        const normalizado = (data || []).map((a) => ({
-          id: a.usuario_id,
-          n: a.nombre_completo,
-          email: a.email,
-          telefono: a.telefono,
-          nivel: a.nivel,
-          tipo: a.tipo,
-          pkg: a.paquete_activo,
-          monto: parseFloat(a.costo_mensual) || 0,
-          tipo_cobro: a.tipo_cobro,
-          grupo: a.grupo,
-          inscripcion_id: a.inscripcion_id,
-          fecha_vencimiento: a.fecha_vencimiento,
-          estado_pago: a.estado_pago,
-          dias_estado: a.dias_estado,
-          dia_pago: a.dia_pago,
-          pago:
-            a.ultimo_pago_estado === "sin_pago"
-              ? "pendiente"
-              : a.ultimo_pago_estado,
+        const unicos = new Map();
+
+        (data || []).forEach((a) => {
+          const id = a.usuario_id;
+
+          if (!unicos.has(id)) {
+            unicos.set(id, {
+              id: a.usuario_id,
+              n: a.nombre_completo,
+              email: a.email,
+              telefono: a.telefono,
+              nivel: a.nivel,
+              tipo: a.tipo,
+              pkg: a.paquete_activo,
+              monto: parseFloat(a.costo_mensual) || 0,
+              tipo_cobro: a.tipo_cobro,
+
+              // Guardamos todos los grupos del alumno
+              grupos: a.grupo ? [a.grupo] : [],
+
+              // Dejamos una inscripción como referencia para la lista.
+              // El expediente seguirá cargando todas las inscripciones.
+              inscripcion_id: a.inscripcion_id,
+
+              fecha_vencimiento: a.fecha_vencimiento,
+              estado_pago: a.estado_pago,
+              dias_estado: a.dias_estado,
+              dia_pago: a.dia_pago,
+
+              pago:
+                a.ultimo_pago_estado === "sin_pago"
+                  ? "pendiente"
+                  : a.ultimo_pago_estado,
+            });
+          } else {
+            const alumno = unicos.get(id);
+
+            if (a.grupo && !alumno.grupos.includes(a.grupo)) {
+              alumno.grupos.push(a.grupo);
+            }
+          }
+        });
+
+        const normalizado = Array.from(unicos.values()).map((a) => ({
+          ...a,
+          grupo: a.grupos.length > 0 ? a.grupos.join(" / ") : "Sin grupo",
         }));
         setAlumnos(normalizado);
       })
