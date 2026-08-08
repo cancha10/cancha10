@@ -90,45 +90,165 @@ const registrarAsistencia = async (req, res) => {
     const { asistencias } = req.body;
 
     if (!Array.isArray(asistencias)) {
-      return res.status(400).json({ error: "asistencias debe ser array" });
+      return res.status(400).json({
+        error: "asistencias debe ser array",
+      });
     }
 
     await query("BEGIN");
 
+    // Obtenemos la información de la sesión una sola vez
+    const sesionResult = await query(
+      `
+      SELECT
+        s.id,
+        s.fecha,
+        c.grupo_id,
+        g.tipo AS tipo_grupo
+      FROM sesiones s
+      JOIN clases c
+        ON c.id = s.clase_id
+      JOIN grupos g
+        ON g.id = c.grupo_id
+      WHERE s.id = $1
+      `,
+      [sesionId],
+    );
+
+    if (!sesionResult.rows.length) {
+      await query("ROLLBACK");
+      return res.status(404).json({
+        error: "Sesión no encontrada",
+      });
+    }
+
+    const sesion = sesionResult.rows[0];
+
     for (const a of asistencias) {
+      // Buscar la inscripción correspondiente al alumno y al grupo
+      const inscripcionResult = await query(
+        `
+        SELECT id
+        FROM inscripciones
+        WHERE alumno_id = $1
+          AND grupo_id = $2
+          AND fecha_inicio <= $3::date
+          AND (
+            fecha_fin IS NULL
+            OR fecha_fin >= $3::date
+          )
+        ORDER BY fecha_inicio DESC
+        LIMIT 1
+        `,
+        [a.alumno_id, sesion.grupo_id, sesion.fecha],
+      );
+
+      const inscripcionId =
+        inscripcionResult.rows.length > 0 ? inscripcionResult.rows[0].id : null;
+
+      // Registrar o actualizar asistencia
       const asistenciaResult = await query(
-        `INSERT INTO asistencia (sesion_id, alumno_id, estado)
-         VALUES ($1, $2, $3)
-         ON CONFLICT (sesion_id, alumno_id)
-         DO UPDATE SET estado = EXCLUDED.estado
-         RETURNING id, alumno_id, estado`,
-        [sesionId, a.alumno_id, a.estado],
+        `
+        INSERT INTO asistencia (
+          sesion_id,
+          alumno_id,
+          estado,
+          inscripcion_id,
+          tipo
+        )
+        VALUES ($1, $2, $3, $4, 'regular')
+
+        ON CONFLICT (sesion_id, alumno_id)
+        DO UPDATE SET
+          estado = EXCLUDED.estado,
+          inscripcion_id = EXCLUDED.inscripcion_id
+
+        RETURNING
+          id,
+          alumno_id,
+          estado,
+          inscripcion_id
+        `,
+        [sesionId, a.alumno_id, a.estado, inscripcionId],
       );
 
       const asistencia = asistenciaResult.rows[0];
 
-      if (asistencia.estado === "falta") {
+      // =====================================================
+      // FALTA EN GRUPO = CREA REPOSICIÓN
+      // =====================================================
+
+      if (
+        asistencia.estado === "falta" &&
+        sesion.tipo_grupo === "grupal" &&
+        asistencia.inscripcion_id
+      ) {
         await query(
-          `INSERT INTO reposiciones (
-             alumno_id,
-             asistencia_id,
-             estado
-           )
-           VALUES ($1, $2, 'pendiente')
-           ON CONFLICT (asistencia_id)
-           DO UPDATE SET
-             estado = 'pendiente',
-             fecha_utilizada = NULL`,
-          [asistencia.alumno_id, asistencia.id],
+          `
+          INSERT INTO reposiciones (
+            alumno_id,
+            asistencia_id,
+            inscripcion_id,
+            estado,
+            fecha_generada,
+            fecha_vencimiento
+          )
+          VALUES (
+            $1,
+            $2,
+            $3,
+            'pendiente',
+            $4::date,
+            $4::date + INTERVAL '30 days'
+          )
+
+          ON CONFLICT (asistencia_id)
+          DO UPDATE SET
+            estado = 'pendiente',
+            inscripcion_id = EXCLUDED.inscripcion_id,
+            fecha_generada = EXCLUDED.fecha_generada,
+            fecha_vencimiento = EXCLUDED.fecha_vencimiento,
+            fecha_utilizada = NULL,
+            asistencia_uso_id = NULL
+          `,
+          [
+            asistencia.alumno_id,
+            asistencia.id,
+            asistencia.inscripcion_id,
+            sesion.fecha,
+          ],
         );
       }
 
+      // =====================================================
+      // FALTA PARTICULAR = NO GENERA REPOSICIÓN
+      // =====================================================
+
+      if (asistencia.estado === "falta" && sesion.tipo_grupo === "particular") {
+        await query(
+          `
+          UPDATE reposiciones
+          SET estado = 'cancelada'
+          WHERE asistencia_id = $1
+            AND estado = 'pendiente'
+          `,
+          [asistencia.id],
+        );
+      }
+
+      // =====================================================
+      // SI UNA FALTA SE CORRIGE A ASISTIÓ
+      // CANCELAMOS LA REPOSICIÓN QUE HABÍA GENERADO
+      // =====================================================
+
       if (asistencia.estado === "asistio") {
         await query(
-          `UPDATE reposiciones
-           SET estado = 'cancelada'
-           WHERE asistencia_id = $1
-             AND estado = 'pendiente'`,
+          `
+          UPDATE reposiciones
+          SET estado = 'cancelada'
+          WHERE asistencia_id = $1
+            AND estado = 'pendiente'
+          `,
           [asistencia.id],
         );
       }
@@ -142,12 +262,15 @@ const registrarAsistencia = async (req, res) => {
   } catch (err) {
     try {
       await query("ROLLBACK");
-    } catch (rollbackErr) {
-      console.error("Error haciendo rollback:", rollbackErr);
+    } catch (rollbackError) {
+      console.error("Error haciendo rollback:", rollbackError);
     }
 
     console.error("Error registrando asistencia:", err);
-    res.status(500).json({ error: "Error del servidor" });
+
+    res.status(500).json({
+      error: "Error del servidor",
+    });
   }
 };
 
