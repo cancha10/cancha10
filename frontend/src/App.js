@@ -2244,8 +2244,7 @@ function ViewAlumnos({ showToast }) {
                 <div className="avatar">{inits(a.n)}</div>
                 <div style={{ flex: 1 }}>
                   <div className="alumno-name">{a.n}</div>
-                  "alumno-detail"
-                </div>
+                  </div>
                 <div className="text-right">
                   <div
                     style={{
