@@ -1,5 +1,6 @@
 import TarjetaIndicador from "./TarjetaIndicador";
-export default function ResumenCobranza({ estadisticas }) {
+
+export default function ResumenCobranza({ estadisticas, onFiltro }) {
   return (
     <div
       className="card"
@@ -11,31 +12,51 @@ export default function ResumenCobranza({ estadisticas }) {
         gap: 12,
       }}
     >
-      <TarjetaIndicador icono="👥" titulo="Total" valor={estadisticas.total} />
+      <div onClick={() => onFiltro("todos")} style={{ cursor: "pointer" }}>
+        <TarjetaIndicador
+          icono="👥"
+          titulo="Total"
+          valor={estadisticas.total}
+        />
+      </div>
 
-      <TarjetaIndicador
-        icono="🟢"
-        titulo="Al corriente"
-        valor={estadisticas.alCorriente}
-      />
+      <div
+        onClick={() => onFiltro("al_corriente")}
+        style={{ cursor: "pointer" }}
+      >
+        <TarjetaIndicador
+          icono="🟢"
+          titulo="Al corriente"
+          valor={estadisticas.alCorriente}
+        />
+      </div>
 
-      <TarjetaIndicador
-        icono="🟡"
-        titulo="Vence pronto"
-        valor={estadisticas.vencePronto}
-      />
+      <div
+        onClick={() => onFiltro("vence_pronto")}
+        style={{ cursor: "pointer" }}
+      >
+        <TarjetaIndicador
+          icono="🟡"
+          titulo="Vence pronto"
+          valor={estadisticas.vencePronto}
+        />
+      </div>
 
-      <TarjetaIndicador
-        icono="🔴"
-        titulo="Atrasados"
-        valor={estadisticas.atrasados}
-      />
+      <div onClick={() => onFiltro("atrasado")} style={{ cursor: "pointer" }}>
+        <TarjetaIndicador
+          icono="🔴"
+          titulo="Atrasados"
+          valor={estadisticas.atrasados}
+        />
+      </div>
 
-      <TarjetaIndicador
-        icono="⚪"
-        titulo="Sin pago"
-        valor={estadisticas.sinPago}
-      />
+      <div onClick={() => onFiltro("sin_pago")} style={{ cursor: "pointer" }}>
+        <TarjetaIndicador
+          icono="⚪"
+          titulo="Sin pago"
+          valor={estadisticas.sinPago}
+        />
+      </div>
     </div>
   );
 }

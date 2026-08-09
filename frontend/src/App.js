@@ -1,5 +1,4 @@
 import AlumnoExpediente from "./components/AlumnoExpediente";
-import AccionesRapidas from "./components/AccionesRapidas";
 import DashboardHeader from "./components/DashboardHeader";
 import ResumenCobranza from "./components/ResumenCobranza";
 import { useState, useEffect, useCallback } from "react";
@@ -2208,9 +2207,8 @@ function ViewAlumnos({ showToast }) {
         />
       </div>
       <DashboardHeader />
-      <ResumenCobranza estadisticas={estadisticas} />
+      <ResumenCobranza estadisticas={estadisticas} onFiltro={setFiltro} />
 
-      <AccionesRapidas />
       <div className="filter-row">
         {["todos", "al_corriente", "vence_pronto", "atrasado", "sin_pago"].map(
           (f) => (
@@ -2244,7 +2242,7 @@ function ViewAlumnos({ showToast }) {
                 <div className="avatar">{inits(a.n)}</div>
                 <div style={{ flex: 1 }}>
                   <div className="alumno-name">{a.n}</div>
-                  </div>
+                </div>
                 <div className="text-right">
                   <div
                     style={{
