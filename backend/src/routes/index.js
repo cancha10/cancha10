@@ -96,7 +96,18 @@ router.post(
   adminOInstructor,
   clasesCtrl.registrarAsistencia,
 );
-
+router.get(
+  "/reposiciones/pendientes",
+  authMiddleware,
+  adminOInstructor,
+  clasesCtrl.listarReposicionesPendientes,
+);
+router.post(
+  "/reposiciones/:reposicionId/usar",
+  authMiddleware,
+  adminOInstructor,
+  clasesCtrl.usarReposicion,
+);
 // Reservaciones
 router.post("/reservaciones", authMiddleware, reservacionesCtrl.crear);
 router.delete("/reservaciones/:id", authMiddleware, reservacionesCtrl.cancelar);

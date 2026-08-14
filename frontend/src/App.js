@@ -557,6 +557,10 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [mostrarReposiciones, setMostrarReposiciones] = useState(false);
+  const [reposicionesPendientes, setReposicionesPendientes] = useState([]);
+  const [loadingReposiciones, setLoadingReposiciones] = useState(false);
+  const [errorReposiciones, setErrorReposiciones] = useState("");
 
   useEffect(() => {
     Api.alumnosDeSesion(sesion.id)
@@ -572,7 +576,30 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sesion.id]);
+  const cargarReposiciones = async () => {
+    setLoadingReposiciones(true);
+    setErrorReposiciones("");
 
+    try {
+      const data = await Api.listarReposicionesPendientes();
+      setReposicionesPendientes(data || []);
+      setMostrarReposiciones(true);
+    } catch (e) {
+      setErrorReposiciones(
+        e.message || "No se pudieron cargar las reposiciones",
+      );
+    } finally {
+      setLoadingReposiciones(false);
+    }
+  };
+  const candidatosReposicion = Object.values(
+    reposicionesPendientes.reduce((acc, r) => {
+      if (!acc[r.alumno_id]) {
+        acc[r.alumno_id] = r;
+      }
+      return acc;
+    }, {}),
+  );
   const toggle = (id, val) =>
     setEstados((prev) => ({ ...prev, [id]: prev[id] === val ? null : val }));
 
@@ -604,6 +631,74 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
         <div className="drawer-sub">
           {fmtH(sesion.hi)} – {fmtH(sesion.hf)}
         </div>
+        {/* Reposiciones */}
+        <button
+          type="button"
+          className="btn-save"
+          style={{ marginBottom: 12 }}
+          onClick={cargarReposiciones}
+        >
+          + AGREGAR CON REPOSICIÓN
+        </button>
+
+        {mostrarReposiciones && (
+          <div
+            style={{
+              marginBottom: 14,
+              padding: 10,
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+            }}
+          >
+            {loadingReposiciones ? (
+              <div className="loading">Cargando reposiciones...</div>
+            ) : errorReposiciones ? (
+              <div className="error-msg">{errorReposiciones}</div>
+            ) : candidatosReposicion.length === 0 ? (
+              <div className="empty">No hay reposiciones disponibles</div>
+            ) : (
+              candidatosReposicion.map((r) => (
+                <div
+                  key={r.alumno_id}
+                  className="asist-row"
+                  style={{ cursor: "pointer" }}
+                  onClick={async () => {
+                    try {
+                      await Api.usarReposicion(r.reposicion_id, sesion.id);
+                      showToast(
+                        `${r.nombre} ${r.apellido} agregado como reposición ✓`,
+                      );
+                      setMostrarReposiciones(false);
+
+                      const data = await Api.alumnosDeSesion(sesion.id);
+                      setAlumnosSesion(data || []);
+                    } catch (e) {
+                      setErrorReposiciones(
+                        e.message || "No se pudo utilizar la reposición",
+                      );
+                    }
+                  }}
+                >
+                  <span className="asist-name">
+                    ↪ {r.nombre} {r.apellido}
+                  </span>
+
+                  <span
+                    style={{
+                      fontSize: 11,
+                      color: "var(--gold)",
+                      fontWeight: 700,
+                    }}
+                  >
+                    Vence {fmtFechaCorta(r.fecha_vencimiento)}
+                  </span>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+
+        {error && <div className="error-msg">{error}</div>}
         {error && <div className="error-msg">{error}</div>}
         {loading ? (
           <div className="loading">

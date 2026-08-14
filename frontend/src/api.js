@@ -138,7 +138,15 @@ const Api = {
       method: "POST",
       body: JSON.stringify({ asistencias }),
     }),
+  usarReposicion: (reposicionId, sesionId) =>
+    apiCall(`/reposiciones/${reposicionId}/usar`, {
+      method: "POST",
+      body: JSON.stringify({
+        sesionId,
+      }),
+    }),
 
+  listarReposicionesPendientes: () => apiCall("/reposiciones/pendientes"),
   // ── Reservaciones ───────────────────────────────────────────────────
   misReservas: () => apiCall("/reservaciones/mis-reservas"),
   crearReserva: (sesion_id) =>

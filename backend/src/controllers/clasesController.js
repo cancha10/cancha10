@@ -203,13 +203,12 @@ const registrarAsistencia = async (req, res) => {
           )
 
           ON CONFLICT (asistencia_id)
-          DO UPDATE SET
-            estado = 'pendiente',
-            inscripcion_id = EXCLUDED.inscripcion_id,
-            fecha_generada = EXCLUDED.fecha_generada,
-            fecha_vencimiento = EXCLUDED.fecha_vencimiento,
-            fecha_utilizada = NULL,
-            asistencia_uso_id = NULL
+DO UPDATE SET
+  estado = 'pendiente',
+  inscripcion_id = EXCLUDED.inscripcion_id,
+  fecha_generada = EXCLUDED.fecha_generada,
+  fecha_vencimiento = EXCLUDED.fecha_vencimiento
+WHERE reposiciones.estado IN ('pendiente', 'cancelada')
           `,
           [
             asistencia.alumno_id,
@@ -333,7 +332,189 @@ const eliminarClase = async (req, res) => {
     res.status(500).json({ error: "Error del servidor" });
   }
 };
+const listarReposicionesPendientes = async (req, res) => {
+  try {
+    const result = await query(
+      `
+      SELECT
+        r.id AS reposicion_id,
+        r.alumno_id,
+        r.inscripcion_id,
+        r.fecha_generada,
+        r.fecha_vencimiento,
+        u.nombre,
+        u.apellido,
+        g.nombre AS grupo_origen,
+        g.tipo AS tipo_grupo
+      FROM reposiciones r
+      JOIN alumnos al
+        ON al.id = r.alumno_id
+      JOIN usuarios u
+        ON u.id = al.usuario_id
+      JOIN asistencia a
+        ON a.id = r.asistencia_id
+      JOIN sesiones s
+        ON s.id = a.sesion_id
+      JOIN clases c
+        ON c.id = s.clase_id
+      JOIN grupos g
+        ON g.id = c.grupo_id
+      WHERE r.estado = 'pendiente'
+        AND g.tipo = 'grupal'
+        AND (
+          r.fecha_vencimiento IS NULL
+          OR r.fecha_vencimiento >= CURRENT_DATE
+        )
+      ORDER BY
+        r.fecha_vencimiento ASC NULLS LAST,
+        r.fecha_generada ASC
+      `,
+    );
 
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error listando reposiciones pendientes:", err);
+
+    res.status(500).json({
+      error: "Error del servidor",
+    });
+  }
+};
+const usarReposicion = async (req, res) => {
+  console.log("🔥 ENTRÓ A usarReposicion");
+  console.log("PARAMS:", req.params);
+  console.log("BODY:", req.body);
+  try {
+    const { reposicionId } = req.params;
+    const { sesionId } = req.body;
+
+    if (!sesionId) {
+      return res.status(400).json({
+        error: "sesionId es requerido",
+      });
+    }
+
+    await query("BEGIN");
+
+    // 1. Obtener y bloquear la reposición
+    const reposicionResult = await query(
+      `
+      SELECT
+        r.id,
+        r.alumno_id,
+        r.estado,
+        r.fecha_vencimiento,
+        r.fecha_utilizada,
+        r.asistencia_uso_id
+      FROM reposiciones r
+      WHERE r.id = $1
+      FOR UPDATE
+      `,
+      [reposicionId],
+    );
+
+    if (!reposicionResult.rows.length) {
+      await query("ROLLBACK");
+      return res.status(404).json({
+        error: "Reposición no encontrada",
+      });
+    }
+
+    const reposicion = reposicionResult.rows[0];
+
+    if (reposicion.estado !== "pendiente") {
+      await query("ROLLBACK");
+      return res.status(400).json({
+        error: "La reposición ya no está disponible",
+      });
+    }
+
+    if (
+      reposicion.fecha_vencimiento &&
+      new Date(reposicion.fecha_vencimiento) < new Date()
+    ) {
+      await query("ROLLBACK");
+      return res.status(400).json({
+        error: "La reposición está vencida",
+      });
+    }
+
+    // 2. Comprobar que la sesión destino existe
+    const sesionResult = await query(
+      `
+      SELECT id, fecha
+      FROM sesiones
+      WHERE id = $1
+      `,
+      [sesionId],
+    );
+
+    if (!sesionResult.rows.length) {
+      await query("ROLLBACK");
+      return res.status(404).json({
+        error: "Sesión no encontrada",
+      });
+    }
+
+    const sesion = sesionResult.rows[0];
+
+    // 3. Registrar la asistencia del alumno en la sesión destino
+    const asistenciaResult = await query(
+      `
+      INSERT INTO asistencia (
+        sesion_id,
+        alumno_id,
+        estado,
+        inscripcion_id,
+        tipo
+      )
+      VALUES ($1, $2, 'asistio', NULL, 'reposicion')
+
+      ON CONFLICT (sesion_id, alumno_id)
+      DO UPDATE SET
+        estado = 'asistio',
+        tipo = 'reposicion'
+
+      RETURNING id
+      `,
+      [sesionId, reposicion.alumno_id],
+    );
+
+    const asistenciaUsoId = asistenciaResult.rows[0].id;
+
+    // 4. Consumir la reposición
+    await query(
+      `
+      UPDATE reposiciones
+      SET
+        estado = 'utilizada',
+        fecha_utilizada = $2::date,
+        asistencia_uso_id = $3
+      WHERE id = $1
+      `,
+      [reposicionId, sesion.fecha, asistenciaUsoId],
+    );
+
+    await query("COMMIT");
+
+    res.json({
+      mensaje: "Reposición utilizada correctamente",
+      asistenciaUsoId,
+    });
+  } catch (err) {
+    try {
+      await query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Error haciendo rollback:", rollbackError);
+    }
+
+    console.error("Error utilizando reposición:", err);
+
+    res.status(500).json({
+      error: "Error del servidor",
+    });
+  }
+};
 module.exports = {
   horario,
   sesionesDelDia,
@@ -342,4 +523,6 @@ module.exports = {
   crearClase,
   editarClase,
   eliminarClase,
+  listarReposicionesPendientes,
+  usarReposicion,
 };
