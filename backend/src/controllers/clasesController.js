@@ -70,11 +70,41 @@ const alumnosDeSesion = async (req, res) => {
       return res.status(404).json({ error: "Sesión no encontrada" });
     const grupoId = sesionInfo.rows[0].grupo_id;
     const result = await query(
-      `SELECT u.id AS usuario_id, u.nombre, u.apellido, u.telefono, a.id AS alumno_id, n.nombre AS nivel, ast.estado AS asistencia_estado
-       FROM inscripciones i JOIN alumnos a ON a.id = i.alumno_id JOIN usuarios u ON u.id = a.usuario_id
-       LEFT JOIN niveles n ON n.id = a.nivel_id
-       LEFT JOIN asistencia ast ON ast.sesion_id=$1 AND ast.alumno_id=a.id
-       WHERE i.grupo_id=$2 AND i.estado='activa' ORDER BY u.apellido, u.nombre`,
+      `
+  SELECT DISTINCT
+    u.id AS usuario_id,
+    u.nombre,
+    u.apellido,
+    u.telefono,
+    a.id AS alumno_id,
+    n.nombre AS nivel,
+    ast.id AS asistencia_id,
+    ast.estado AS asistencia_estado,
+    ast.tipo AS asistencia_tipo,
+    r.id AS reposicion_id
+  FROM alumnos a
+  JOIN usuarios u
+    ON u.id = a.usuario_id
+  LEFT JOIN niveles n
+    ON n.id = a.nivel_id
+  LEFT JOIN inscripciones i
+    ON i.alumno_id = a.id
+   AND i.grupo_id = $2
+   AND i.estado = 'activa'
+  LEFT JOIN asistencia ast
+    ON ast.sesion_id = $1
+   AND ast.alumno_id = a.id
+  LEFT JOIN reposiciones r
+    ON r.asistencia_uso_id = ast.id
+   AND r.estado = 'utilizada'
+  WHERE
+    i.id IS NOT NULL
+    OR (
+      ast.id IS NOT NULL
+      AND ast.tipo = 'reposicion'
+    )
+  ORDER BY u.apellido, u.nombre
+  `,
       [sesionId, grupoId],
     );
     res.json(result.rows);
@@ -515,6 +545,103 @@ const usarReposicion = async (req, res) => {
     });
   }
 };
+const revertirReposicion = async (req, res) => {
+  try {
+    const { reposicionId } = req.params;
+
+    if (!reposicionId) {
+      return res.status(400).json({
+        error: "reposicionId es requerido",
+      });
+    }
+
+    await query("BEGIN");
+
+    // 1. Obtener y bloquear la reposición
+    const reposicionResult = await query(
+      `
+      SELECT
+        id,
+        alumno_id,
+        estado,
+        fecha_vencimiento,
+        fecha_utilizada,
+        asistencia_uso_id
+      FROM reposiciones
+      WHERE id = $1
+      FOR UPDATE
+      `,
+      [reposicionId],
+    );
+
+    if (!reposicionResult.rows.length) {
+      await query("ROLLBACK");
+      return res.status(404).json({
+        error: "Reposición no encontrada",
+      });
+    }
+
+    const reposicion = reposicionResult.rows[0];
+
+    if (reposicion.estado !== "utilizada") {
+      await query("ROLLBACK");
+      return res.status(400).json({
+        error: "La reposición no está utilizada",
+      });
+    }
+
+    if (!reposicion.asistencia_uso_id) {
+      await query("ROLLBACK");
+      return res.status(400).json({
+        error: "La reposición no tiene una asistencia asociada",
+      });
+    }
+
+    // 2. Eliminar la asistencia creada por la reposición
+    await query(
+      `
+      DELETE FROM asistencia
+      WHERE id = $1
+        AND alumno_id = $2
+        AND tipo = 'reposicion'
+      `,
+      [reposicion.asistencia_uso_id, reposicion.alumno_id],
+    );
+
+    // 3. Devolver el crédito a estado pendiente
+    await query(
+      `
+      UPDATE reposiciones
+      SET
+        estado = 'pendiente',
+        fecha_utilizada = NULL,
+        asistencia_uso_id = NULL
+      WHERE id = $1
+      `,
+      [reposicionId],
+    );
+
+    await query("COMMIT");
+
+    return res.json({
+      mensaje: "Reposición revertida correctamente",
+      reposicionId,
+    });
+  } catch (err) {
+    try {
+      await query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Error haciendo rollback:", rollbackError);
+    }
+
+    console.error("Error revirtiendo reposición:", err);
+
+    return res.status(500).json({
+      error: "Error del servidor",
+    });
+  }
+};
+
 module.exports = {
   horario,
   sesionesDelDia,
@@ -524,5 +651,6 @@ module.exports = {
   editarClase,
   eliminarClase,
   listarReposicionesPendientes,
+  revertirReposicion,
   usarReposicion,
 };

@@ -145,7 +145,10 @@ const Api = {
         sesionId,
       }),
     }),
-
+  revertirReposicion: (reposicionId) =>
+    apiCall(`/reposiciones/${reposicionId}/revertir`, {
+      method: "POST",
+    }),
   listarReposicionesPendientes: () => apiCall("/reposiciones/pendientes"),
   // ── Reservaciones ───────────────────────────────────────────────────
   misReservas: () => apiCall("/reservaciones/mis-reservas"),

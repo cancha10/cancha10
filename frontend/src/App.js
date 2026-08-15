@@ -712,20 +712,75 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
             <div key={a.alumno_id} className="asist-row">
               <span className="asist-name">
                 {a.nombre} {a.apellido}
+                {a.asistencia_tipo === "reposicion" && (
+                  <span
+                    style={{
+                      marginLeft: 8,
+                      fontSize: 10,
+                      color: "var(--gold)",
+                      fontWeight: 800,
+                    }}
+                  >
+                    REPOSICIÓN
+                  </span>
+                )}
               </span>
+
               <div className="asist-btns">
-                <button
-                  className={`asist-btn ${estados[a.alumno_id] === "asistio" ? "asistio" : ""}`}
-                  onClick={() => toggle(a.alumno_id, "asistio")}
-                >
-                  ✓
-                </button>
-                <button
-                  className={`asist-btn ${estados[a.alumno_id] === "falta" ? "falta" : ""}`}
-                  onClick={() => toggle(a.alumno_id, "falta")}
-                >
-                  ✗
-                </button>
+                {a.asistencia_tipo === "reposicion" && a.reposicion_id ? (
+                  <button
+                    type="button"
+                    className="asist-btn"
+                    title="Revertir reposición"
+                    onClick={async () => {
+                      try {
+                        await Api.revertirReposicion(a.reposicion_id);
+
+                        showToast(
+                          `${a.nombre} ${a.apellido}: reposición devuelta ✓`,
+                        );
+
+                        const data = await Api.alumnosDeSesion(sesion.id);
+                        setAlumnosSesion(data || []);
+
+                        const pendientes =
+                          await Api.listarReposicionesPendientes();
+
+                        setReposicionesPendientes(pendientes || []);
+                      } catch (e) {
+                        setError(
+                          e.message || "No se pudo revertir la reposición",
+                        );
+                      }
+                    }}
+                    style={{
+                      color: "var(--gold)",
+                      borderColor: "var(--gold)",
+                    }}
+                  >
+                    ↩
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      className={`asist-btn ${
+                        estados[a.alumno_id] === "asistio" ? "asistio" : ""
+                      }`}
+                      onClick={() => toggle(a.alumno_id, "asistio")}
+                    >
+                      ✓
+                    </button>
+
+                    <button
+                      className={`asist-btn ${
+                        estados[a.alumno_id] === "falta" ? "falta" : ""
+                      }`}
+                      onClick={() => toggle(a.alumno_id, "falta")}
+                    >
+                      X
+                    </button>
+                  </>
+                )}
               </div>
             </div>
           ))
