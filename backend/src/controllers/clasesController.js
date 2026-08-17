@@ -333,7 +333,140 @@ const eliminarClase = async (req, res) => {
     res.status(500).json({ error: "Error del servidor" });
   }
 };
+const suspenderSesion = async (req, res) => {
+  try {
+    const { sesionId } = req.params;
+    const { motivo } = req.body;
 
+    if (!motivo || !motivo.trim()) {
+      return res.status(400).json({
+        error: "El motivo de suspensión es obligatorio",
+      });
+    }
+
+    await query("BEGIN");
+
+    const sesionResult = await query(
+      `
+      SELECT
+        s.id,
+        s.fecha,
+        s.cancelada,
+        c.grupo_id
+      FROM sesiones s
+      JOIN clases c ON c.id = s.clase_id
+      WHERE s.id = $1
+      FOR UPDATE
+      `,
+      [sesionId],
+    );
+
+    if (!sesionResult.rows.length) {
+      await query("ROLLBACK");
+      return res.status(404).json({
+        error: "Sesión no encontrada",
+      });
+    }
+
+    const sesion = sesionResult.rows[0];
+
+    if (sesion.cancelada) {
+      await query("ROLLBACK");
+      return res.status(409).json({
+        error: "La sesión ya está suspendida",
+      });
+    }
+
+    await query(
+      `
+      UPDATE sesiones
+      SET
+        cancelada = TRUE,
+        notas = $2
+      WHERE id = $1
+      `,
+      [sesionId, `Suspensión: ${motivo.trim()}`],
+    );
+
+    const inscripcionesResult = await query(
+      `
+      SELECT
+        i.id AS inscripcion_id,
+        i.alumno_id
+      FROM inscripciones i
+      WHERE i.grupo_id = $1
+        AND i.estado = 'activa'
+      `,
+      [sesion.grupo_id],
+    );
+
+    for (const inscripcion of inscripcionesResult.rows) {
+      const existente = await query(
+        `
+        SELECT id
+        FROM reposiciones
+        WHERE inscripcion_id = $1
+          AND alumno_id = $2
+          AND asistencia_id IS NULL
+          AND fecha_generada = $3
+          AND estado = 'pendiente'
+        LIMIT 1
+        `,
+        [inscripcion.inscripcion_id, inscripcion.alumno_id, sesion.fecha],
+      );
+
+      if (!existente.rows.length) {
+        await query(
+          `
+          INSERT INTO reposiciones (
+            alumno_id,
+            asistencia_id,
+            inscripcion_id,
+            estado,
+            fecha_generada,
+            fecha_vencimiento,
+            notas
+          )
+          VALUES (
+            $1,
+            NULL,
+            $2,
+            'pendiente',
+            $3::date,
+            $3::date + INTERVAL '30 days',
+            $4
+          )
+          `,
+          [
+            inscripcion.alumno_id,
+            inscripcion.inscripcion_id,
+            sesion.fecha,
+            `Reposición por suspensión: ${motivo.trim()}`,
+          ],
+        );
+      }
+    }
+
+    await query("COMMIT");
+
+    res.json({
+      mensaje: "Sesión suspendida y reposiciones generadas",
+      reposiciones_generadas: inscripcionesResult.rows.length,
+    });
+  } catch (err) {
+    try {
+      await query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Error haciendo rollback:", rollbackError);
+    }
+
+    console.error("Error suspendiendo sesión:", err);
+
+    res.status(500).json({
+      error: "Error del servidor",
+    });
+  }
+};
 module.exports = {
   horario,
   sesionesDelDia,
@@ -342,4 +475,5 @@ module.exports = {
   crearClase,
   editarClase,
   eliminarClase,
+  suspenderSesion,
 };

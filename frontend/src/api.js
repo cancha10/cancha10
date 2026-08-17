@@ -138,7 +138,14 @@ const Api = {
       method: "POST",
       body: JSON.stringify({ asistencias }),
     }),
-
+  suspenderSesion: (sesionId, motivo, otroMotivo = "") =>
+    apiCall(`/sesiones/${sesionId}/suspender`, {
+      method: "POST",
+      body: JSON.stringify({
+        motivo,
+        otro_motivo: otroMotivo,
+      }),
+    }),
   // ── Reservaciones ───────────────────────────────────────────────────
   misReservas: () => apiCall("/reservaciones/mis-reservas"),
   crearReserva: (sesion_id) =>

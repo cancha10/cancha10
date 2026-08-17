@@ -96,7 +96,12 @@ router.post(
   adminOInstructor,
   clasesCtrl.registrarAsistencia,
 );
-
+router.post(
+  "/sesiones/:sesionId/suspender",
+  authMiddleware,
+  adminOInstructor,
+  clasesCtrl.suspenderSesion,
+);
 // Reservaciones
 router.post("/reservaciones", authMiddleware, reservacionesCtrl.crear);
 router.delete("/reservaciones/:id", authMiddleware, reservacionesCtrl.cancelar);
