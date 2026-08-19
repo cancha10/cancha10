@@ -146,6 +146,18 @@ const Api = {
         otro_motivo: otroMotivo,
       }),
     }),
+  listarReposicionesPendientes: () => apiCall("/reposiciones/pendientes"),
+  revertirReposicion: (reposicionId) =>
+    apiCall(`/reposiciones/${reposicionId}/revertir`, {
+      method: "POST",
+    }),
+  usarReposicion: (reposicionId, sesionId) =>
+    apiCall(`/reposiciones/${reposicionId}/usar`, {
+      method: "POST",
+      body: JSON.stringify({
+        sesionId,
+      }),
+    }),
   // ── Reservaciones ───────────────────────────────────────────────────
   misReservas: () => apiCall("/reservaciones/mis-reservas"),
   crearReserva: (sesion_id) =>
