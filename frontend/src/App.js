@@ -557,6 +557,9 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [modoSuspension, setModoSuspension] = useState(false);
+  const [motivoSuspension, setMotivoSuspension] = useState("lluvia");
+  const [otroMotivo, setOtroMotivo] = useState("");
   const [mostrarReposiciones, setMostrarReposiciones] = useState(false);
   const [reposicionesPendientes, setReposicionesPendientes] = useState([]);
   const [loadingReposiciones, setLoadingReposiciones] = useState(false);
@@ -619,7 +622,36 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
       setSaving(false);
     }
   };
+  const confirmarSuspension = async () => {
+    setSaving(true);
+    setError("");
 
+    try {
+      let motivoFinal = motivoSuspension;
+
+      if (motivoSuspension === "otra") {
+        motivoFinal = otroMotivo.trim();
+
+        if (!motivoFinal) {
+          setError("Escribe el motivo de la suspensión");
+          setSaving(false);
+          return;
+        }
+      }
+
+      const resultado = await Api.suspenderSesion(sesion.id, motivoFinal);
+
+      showToast(
+        resultado?.mensaje || "Clase suspendida y reposiciones generadas ✓",
+      );
+
+      onClose();
+    } catch (e) {
+      setError(e.message || "No se pudo suspender la clase");
+    } finally {
+      setSaving(false);
+    }
+  };
   return (
     <div
       className="overlay"
@@ -640,7 +672,6 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
         >
           + AGREGAR CON REPOSICIÓN
         </button>
-
         {mostrarReposiciones && (
           <div
             style={{
@@ -680,7 +711,7 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
                   }}
                 >
                   <span className="asist-name">
-                    ↪ {r.nombre} {r.apellido}
+                    {r.nombre} {r.apellido}
                   </span>
 
                   <span
@@ -699,6 +730,87 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
         )}
 
         {error && <div className="error-msg">{error}</div>}
+        <button
+          type="button"
+          className="btn-save"
+          style={{
+            marginTop: 12,
+            marginBottom: 12,
+            background: "#2a2a2a",
+            border: "1px solid #f6c329",
+            color: "#f6c329",
+          }}
+          onClick={() => setModoSuspension(true)}
+        >
+          ⛈ SUSPENDER CLASE
+        </button>
+        {modoSuspension && (
+          <div
+            style={{
+              marginBottom: 14,
+              padding: 14,
+              border: "1px solid var(--border)",
+              borderRadius: 10,
+            }}
+          >
+            <div style={{ marginBottom: 8 }}>Motivo de la suspensión</div>
+
+            <select
+              value={motivoSuspension}
+              onChange={(e) => setMotivoSuspension(e.target.value)}
+              style={{
+                width: "100%",
+                padding: 12,
+                marginBottom: 10,
+                borderRadius: 8,
+              }}
+            >
+              <option value="lluvia">🌧 Lluvia</option>
+              <option value="otra">Otra causa</option>
+            </select>
+
+            {motivoSuspension === "otra" && (
+              <input
+                type="text"
+                value={otroMotivo}
+                onChange={(e) => setOtroMotivo(e.target.value)}
+                placeholder="Escribe el motivo..."
+                style={{
+                  width: "100%",
+                  padding: 12,
+                  marginBottom: 10,
+                  borderRadius: 8,
+                }}
+              />
+            )}
+
+            <div style={{ fontSize: 13, marginBottom: 12 }}>
+              No se marcarán faltas. Se generará una reposición para los alumnos
+              con derecho a esta sesión.
+            </div>
+            <button
+              type="button"
+              className="btn-save"
+              onClick={confirmarSuspension}
+              disabled={saving}
+              style={{
+                marginRight: 10,
+                background: "#fc6329",
+                color: "#fff",
+              }}
+            >
+              {saving ? "SUSPENDIENDO..." : "CONFIRMAR SUSPENSIÓN"}
+            </button>
+
+            <button
+              type="button"
+              className="btn-save"
+              onClick={() => setModoSuspension(false)}
+            >
+              CANCELAR
+            </button>
+          </div>
+        )}
         {error && <div className="error-msg">{error}</div>}
         {loading ? (
           <div className="loading">
@@ -727,7 +839,7 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
               </span>
 
               <div className="asist-btns">
-                {a.asistencia_tipo === "reposicion" && a.reposicion_id ? (
+                {a.asistencia_tipo === "reposicion" && a.reposicion_id && (
                   <button
                     type="button"
                     className="asist-btn"

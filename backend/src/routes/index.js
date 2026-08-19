@@ -96,6 +96,12 @@ router.post(
   adminOInstructor,
   clasesCtrl.registrarAsistencia,
 );
+router.post(
+  "/sesiones/:sesionId/suspender",
+  authMiddleware,
+  adminOInstructor,
+  clasesCtrl.suspenderSesion,
+);
 router.get(
   "/reposiciones/pendientes",
   authMiddleware,
@@ -108,6 +114,10 @@ router.post(
   adminOInstructor,
   clasesCtrl.usarReposicion,
 );
+<<<<<<< HEAD
+=======
+
+>>>>>>> develop
 router.post(
   "/reposiciones/:reposicionId/revertir",
   authMiddleware,

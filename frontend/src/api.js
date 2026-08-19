@@ -138,6 +138,19 @@ const Api = {
       method: "POST",
       body: JSON.stringify({ asistencias }),
     }),
+  suspenderSesion: (sesionId, motivo, otroMotivo = "") =>
+    apiCall(`/sesiones/${sesionId}/suspender`, {
+      method: "POST",
+      body: JSON.stringify({
+        motivo,
+        otro_motivo: otroMotivo,
+      }),
+    }),
+  listarReposicionesPendientes: () => apiCall("/reposiciones/pendientes"),
+  revertirReposicion: (reposicionId) =>
+    apiCall(`/reposiciones/${reposicionId}/revertir`, {
+      method: "POST",
+    }),
   usarReposicion: (reposicionId, sesionId) =>
     apiCall(`/reposiciones/${reposicionId}/usar`, {
       method: "POST",
@@ -145,11 +158,6 @@ const Api = {
         sesionId,
       }),
     }),
-  revertirReposicion: (reposicionId) =>
-    apiCall(`/reposiciones/${reposicionId}/revertir`, {
-      method: "POST",
-    }),
-  listarReposicionesPendientes: () => apiCall("/reposiciones/pendientes"),
   // ── Reservaciones ───────────────────────────────────────────────────
   misReservas: () => apiCall("/reservaciones/mis-reservas"),
   crearReserva: (sesion_id) =>
