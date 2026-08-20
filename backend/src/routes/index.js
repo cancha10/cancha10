@@ -114,10 +114,6 @@ router.post(
   adminOInstructor,
   clasesCtrl.usarReposicion,
 );
-<<<<<<< HEAD
-=======
-
->>>>>>> develop
 router.post(
   "/reposiciones/:reposicionId/revertir",
   authMiddleware,
