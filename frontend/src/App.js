@@ -839,7 +839,7 @@ function AsistenciaDrawer({ sesion, onClose, showToast }) {
               </span>
 
               <div className="asist-btns">
-                {a.asistencia_tipo === "reposicion" && a.reposicion_id && (
+                {a.asistencia_tipo === "reposicion" && a.reposicion_id ? (
                   <button
                     type="button"
                     className="asist-btn"
