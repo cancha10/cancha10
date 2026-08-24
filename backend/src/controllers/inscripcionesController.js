@@ -263,13 +263,84 @@ const eliminarPaquete = async (req, res) => {
     res.status(500).json({ error: "Error del servidor" });
   }
 };
+const actualizarClases = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { clase_ids = [] } = req.body;
 
+    if (!Array.isArray(clase_ids)) {
+      return res.status(400).json({
+        error: "clase_ids debe ser un arreglo",
+      });
+    }
+
+    await query("BEGIN");
+
+    const inscripcion = await query(
+      `
+      SELECT id
+      FROM inscripciones
+      WHERE id = $1
+        AND estado = 'activa'
+      `,
+      [id],
+    );
+
+    if (!inscripcion.rows.length) {
+      await query("ROLLBACK");
+
+      return res.status(404).json({
+        error: "Inscripción activa no encontrada",
+      });
+    }
+
+    await query(
+      `
+      DELETE FROM inscripcion_clases
+      WHERE inscripcion_id = $1
+      `,
+      [id],
+    );
+
+    for (const claseId of clase_ids) {
+      await query(
+        `
+        INSERT INTO inscripcion_clases (inscripcion_id, clase_id)
+        VALUES ($1, $2)
+        ON CONFLICT (inscripcion_id, clase_id) DO NOTHING
+        `,
+        [id, claseId],
+      );
+    }
+
+    await query("COMMIT");
+
+    return res.json({
+      mensaje: "Clases de la inscripción actualizadas",
+      inscripcion_id: id,
+      clase_ids,
+    });
+  } catch (err) {
+    try {
+      await query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Error haciendo rollback:", rollbackError);
+    }
+
+    console.error("Error actualizando clases de inscripción:", err);
+
+    return res.status(500).json({
+      error: "Error del servidor",
+    });
+  }
+};
 module.exports = {
   listar,
   crear,
   renovar,
   darDeBaja,
   actualizarDiaPago,
+  actualizarClases,
   listarPaquetes,
   crearPaquete,
   editarPaquete,

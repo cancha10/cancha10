@@ -485,6 +485,8 @@ export default function AlumnoExpediente({
   const [paqueteSeleccionado, setPaqueteSeleccionado] = useState("");
   const [grupoSeleccionado, setGrupoSeleccionado] = useState("");
   const [claseIdsSeleccionadas, setClaseIdsSeleccionadas] = useState([]);
+  const [inscripcionEditando, setInscripcionEditando] = useState(null);
+  const [claseIdsEditando, setClaseIdsEditando] = useState([]);
   const [showFicha, setShowFicha] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
@@ -968,6 +970,34 @@ export default function AlumnoExpediente({
                           }}
                         >
                           Dar de baja
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setInscripcionEditando(inscripcion);
+
+                            const clasesActuales = Array.isArray(
+                              inscripcion.clase_ids,
+                            )
+                              ? inscripcion.clase_ids.map(Number)
+                              : [];
+
+                            setClaseIdsEditando(clasesActuales);
+                          }}
+                          style={{
+                            padding: "6px 9px",
+                            borderRadius: 6,
+                            border: "1px solid var(--gold)",
+                            background: "transparent",
+                            color: "var(--gold)",
+                            fontSize: 11,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                            whiteSpace: "nowrap",
+                            marginLeft: 8,
+                          }}
+                        >
+                          Editar clases
                         </button>
                       </div>
                     </div>
@@ -1951,6 +1981,127 @@ export default function AlumnoExpediente({
               <button
                 type="button"
                 onClick={() => setShowAgregarInscripcion(false)}
+                style={{ marginTop: 10, width: "100%" }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        )}
+        {inscripcionEditando && (
+          <div
+            className="overlay"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) {
+                setInscripcionEditando(null);
+                setClaseIdsEditando([]);
+              }
+            }}
+          >
+            <div className="drawer" style={{ maxHeight: "70dvh" }}>
+              <div className="drawer-handle" />
+
+              <div className="drawer-title">Editar clases</div>
+
+              <div
+                style={{
+                  fontSize: 12,
+                  color: "var(--gr)",
+                  marginBottom: 14,
+                }}
+              >
+                {inscripcionEditando.grupo || "Grupo"}
+              </div>
+
+              <div className="field">
+                <label>Clases asignadas</label>
+
+                {clasesDisponibles
+                  .filter(
+                    (clase) =>
+                      Number(clase.grupo_id) ===
+                      Number(inscripcionEditando.grupo_id),
+                  )
+                  .map((clase) => {
+                    const claseId = Number(clase.clase_id || clase.id);
+                    const marcada = claseIdsEditando.includes(claseId);
+
+                    return (
+                      <label
+                        key={claseId}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 12,
+                          padding: "12px 10px",
+                          marginBottom: 8,
+                          border: "1px solid var(--border)",
+                          borderRadius: 8,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={marcada}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              setClaseIdsEditando((prev) => [...prev, claseId]);
+                            } else {
+                              setClaseIdsEditando((prev) =>
+                                prev.filter((id) => id !== claseId),
+                              );
+                            }
+                          }}
+                        />
+
+                        <span>
+                          {clase.dia_nombre ||
+                            clase.dia ||
+                            `Día ${clase.dia_semana}`}{" "}
+                          {clase.hora_inicio
+                            ? `${clase.hora_inicio} - ${clase.hora_fin}`
+                            : ""}
+                        </span>
+                      </label>
+                    );
+                  })}
+              </div>
+
+              <button
+                type="button"
+                className="btn-save"
+                style={{ width: "100%", marginTop: 12 }}
+                onClick={async () => {
+                  try {
+                    await Api.actualizarClasesInscripcion(
+                      inscripcionEditando.id,
+                      claseIdsEditando,
+                    );
+
+                    await cargarDetalle();
+                    onActualizar?.();
+
+                    showToast?.("Clases actualizadas correctamente ✓");
+
+                    setInscripcionEditando(null);
+                    setClaseIdsEditando([]);
+                  } catch (e) {
+                    alert(
+                      e.message ||
+                        "No se pudieron actualizar las clases de la inscripción",
+                    );
+                  }
+                }}
+              >
+                Guardar clases
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setInscripcionEditando(null);
+                  setClaseIdsEditando([]);
+                }}
                 style={{ marginTop: 10, width: "100%" }}
               >
                 Cancelar

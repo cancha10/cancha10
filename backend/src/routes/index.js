@@ -160,6 +160,12 @@ router.patch(
   soloAdmin,
   inscripcionesCtrl.actualizarDiaPago,
 );
+router.patch(
+  "/inscripciones/:id/clases",
+  authMiddleware,
+  soloAdmin,
+  inscripcionesCtrl.actualizarClases,
+);
 router.get("/paquetes", inscripcionesCtrl.listarPaquetes);
 router.post(
   "/paquetes",

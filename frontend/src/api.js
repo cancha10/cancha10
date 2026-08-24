@@ -98,7 +98,11 @@ const Api = {
       method: "POST",
       body: JSON.stringify(datos),
     }),
-
+  actualizarClasesInscripcion: (id, clase_ids) =>
+    apiCall(`/inscripciones/${id}/clases`, {
+      method: "PATCH",
+      body: JSON.stringify({ clase_ids }),
+    }),
   darDeBajaInscripcion: (id, datos = {}) =>
     apiCall(`/inscripciones/${id}/baja`, {
       method: "PATCH",

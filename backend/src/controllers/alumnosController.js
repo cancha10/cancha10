@@ -45,7 +45,15 @@ const obtenerAlumno = async (req, res) => {
       p.tipo AS tipo_paquete,
       p.clases_semana,
       p.precio_mensual,
-      p.precio_clase
+      p.precio_clase,
+COALESCE(
+  (
+    SELECT array_agg(ic.clase_id ORDER BY ic.clase_id)
+    FROM inscripcion_clases ic
+    WHERE ic.inscripcion_id = i.id
+  ),
+  ARRAY[]::integer[]
+) AS clase_ids
    FROM inscripciones i
    LEFT JOIN grupos g ON g.id = i.grupo_id
    LEFT JOIN paquetes p ON p.id = i.paquete_id
