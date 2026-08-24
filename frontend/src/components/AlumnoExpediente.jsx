@@ -484,6 +484,7 @@ export default function AlumnoExpediente({
   const [paquetesDisponibles, setPaquetesDisponibles] = useState([]);
   const [paqueteSeleccionado, setPaqueteSeleccionado] = useState("");
   const [grupoSeleccionado, setGrupoSeleccionado] = useState("");
+  const [claseIdsSeleccionadas, setClaseIdsSeleccionadas] = useState([]);
   const [showFicha, setShowFicha] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
@@ -1836,6 +1837,58 @@ export default function AlumnoExpediente({
                     ))}
                   </select>
                 </div>
+                {grupoSeleccionado && (
+                  <div style={{ marginTop: 12 }}>
+                    <label>Clases asignadas</label>
+
+                    <div style={{ display: "grid", gap: 8, marginTop: 8 }}>
+                      {clasesDisponibles
+                        .filter(
+                          (clase) =>
+                            String(clase.grupo_id || clase.id) ===
+                            String(grupoSeleccionado),
+                        )
+                        .map((clase) => {
+                          const claseId = clase.clase_id || clase.id;
+                          const seleccionada =
+                            claseIdsSeleccionadas.includes(claseId);
+
+                          return (
+                            <label
+                              key={claseId}
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                                padding: 10,
+                                border: "1px solid #2A2A2A",
+                                borderRadius: 8,
+                                cursor: "pointer",
+                              }}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={seleccionada}
+                                onChange={() => {
+                                  setClaseIdsSeleccionadas((prev) =>
+                                    seleccionada
+                                      ? prev.filter((id) => id !== claseId)
+                                      : [...prev, claseId],
+                                  );
+                                }}
+                              />
+
+                              <span>
+                                {clase.dia || clase.dia_semana || "Día"}{" "}
+                                {clase.hora_inicio || ""}{" "}
+                                {clase.hora_fin ? `- ${clase.hora_fin}` : ""}
+                              </span>
+                            </label>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
                 <label>Paquete</label>
 
                 <select
@@ -1874,6 +1927,7 @@ export default function AlumnoExpediente({
                       alumno_id: detalle.alumno_id,
                       grupo_id: Number(grupoSeleccionado),
                       paquete_id: Number(paqueteSeleccionado),
+                      clase_ids: claseIdsSeleccionadas,
                       fecha_inicio: new Date().toISOString().split("T")[0],
                       dia_pago:
                         alumno.dia_pago_efectivo || alumno.dia_pago || 1,

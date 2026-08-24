@@ -17,12 +17,26 @@ const listar = async (req, res) => {
 
 const crear = async (req, res) => {
   try {
-    const { alumno_id, grupo_id, paquete_id, fecha_inicio, dia_pago } =
-      req.body;
-    if (!alumno_id)
+    const {
+      alumno_id,
+      grupo_id,
+      paquete_id,
+      fecha_inicio,
+      dia_pago,
+      clase_ids = [],
+    } = req.body;
+
+    if (!alumno_id) {
       return res.status(400).json({ error: "alumno_id requerido" });
+    }
+
+    await query("BEGIN");
+
     const result = await query(
-      `INSERT INTO inscripciones (alumno_id, grupo_id, paquete_id, fecha_inicio, dia_pago) VALUES ($1,$2,$3,$4,$5) RETURNING *`,
+      `INSERT INTO inscripciones
+        (alumno_id, grupo_id, paquete_id, fecha_inicio, dia_pago)
+       VALUES ($1,$2,$3,$4,$5)
+       RETURNING *`,
       [
         alumno_id,
         grupo_id || null,
@@ -31,12 +45,36 @@ const crear = async (req, res) => {
         dia_pago || null,
       ],
     );
-    res
-      .status(201)
-      .json({ mensaje: "Inscripción creada", inscripcion: result.rows[0] });
+
+    const inscripcion = result.rows[0];
+
+    if (Array.isArray(clase_ids) && clase_ids.length > 0) {
+      for (const claseId of clase_ids) {
+        await query(
+          `INSERT INTO inscripcion_clases (inscripcion_id, clase_id)
+           VALUES ($1, $2)
+           ON CONFLICT (inscripcion_id, clase_id) DO NOTHING`,
+          [inscripcion.id, claseId],
+        );
+      }
+    }
+
+    await query("COMMIT");
+
+    return res.status(201).json({
+      mensaje: "Inscripción creada",
+      inscripcion,
+      clase_ids,
+    });
   } catch (err) {
+    try {
+      await query("ROLLBACK");
+    } catch (rollbackError) {
+      console.error("Error haciendo rollback:", rollbackError);
+    }
+
     console.error("Error creando inscripción:", err);
-    res.status(500).json({ error: "Error del servidor" });
+    return res.status(500).json({ error: "Error del servidor" });
   }
 };
 

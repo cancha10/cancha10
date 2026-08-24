@@ -63,12 +63,19 @@ const alumnosDeSesion = async (req, res) => {
   try {
     const { sesionId } = req.params;
     const sesionInfo = await query(
-      `SELECT g.id AS grupo_id FROM sesiones s JOIN clases c ON c.id = s.clase_id JOIN grupos g ON g.id = c.grupo_id WHERE s.id = $1`,
+      `SELECT
+      g.id AS grupo_id,
+      c.id AS clase_id
+   FROM sesiones s
+   JOIN clases c ON c.id = s.clase_id
+   JOIN grupos g ON g.id = c.grupo_id
+   WHERE s.id = $1`,
       [sesionId],
     );
     if (!sesionInfo.rows.length)
       return res.status(404).json({ error: "Sesión no encontrada" });
     const grupoId = sesionInfo.rows[0].grupo_id;
+    const claseId = sesionInfo.rows[0].clase_id;
     const result = await query(
       `
   SELECT DISTINCT
@@ -94,7 +101,20 @@ const alumnosDeSesion = async (req, res) => {
   LEFT JOIN reposiciones r
     ON r.asistencia_uso_id = ast.id
   WHERE i.grupo_id = $2
-    AND i.estado = 'activa'
+  AND i.estado = 'activa'
+  AND (
+    EXISTS (
+      SELECT 1
+      FROM inscripcion_clases ic
+      WHERE ic.inscripcion_id = i.id
+        AND ic.clase_id = $3
+    )
+    OR NOT EXISTS (
+      SELECT 1
+      FROM inscripcion_clases ic2
+      WHERE ic2.inscripcion_id = i.id
+    )
+  )
 
   UNION ALL
 
@@ -122,7 +142,7 @@ const alumnosDeSesion = async (req, res) => {
 
   ORDER BY apellido, nombre
   `,
-      [sesionId, grupoId],
+      [sesionId, grupoId, claseId],
     );
     res.json(result.rows);
   } catch (err) {
