@@ -485,6 +485,9 @@ export default function AlumnoExpediente({
   const [paqueteSeleccionado, setPaqueteSeleccionado] = useState("");
   const [grupoSeleccionado, setGrupoSeleccionado] = useState("");
   const [claseIdsSeleccionadas, setClaseIdsSeleccionadas] = useState([]);
+  const [precioPersonalizado, setPrecioPersonalizado] = useState("");
+  const [motivoPrecioPersonalizado, setMotivoPrecioPersonalizado] =
+    useState("");
   const [inscripcionEditando, setInscripcionEditando] = useState(null);
   const [claseIdsEditando, setClaseIdsEditando] = useState([]);
   const [showFicha, setShowFicha] = useState(false);
@@ -1599,10 +1602,58 @@ export default function AlumnoExpediente({
             <div className="card-label">Clases</div>
             <div className="pago-row" style={{ padding: "8px 0" }}>
               <span style={{ fontSize: 12, color: "var(--gr)" }}>
-                Grupo actual
+                Inscripciones activas
               </span>
-              <span style={{ fontSize: 13, color: "var(--wh)" }}>
-                {alumno.grupo || detalle?.grupo || "—"}
+
+              <span
+                style={{
+                  fontSize: 13,
+                  color: "var(--wh)",
+                  textAlign: "right",
+                  display: "grid",
+                  gap: 8,
+                }}
+              >
+                {Array.isArray(detalle?.inscripciones) &&
+                detalle.inscripciones.length > 0
+                  ? detalle.inscripciones.map((inscripcion) => {
+                      const ids = Array.isArray(inscripcion.clase_ids)
+                        ? inscripcion.clase_ids.map(Number)
+                        : [];
+
+                      const clasesAsignadas = clasesDisponibles.filter(
+                        (clase) =>
+                          ids.includes(Number(clase.clase_id || clase.id)),
+                      );
+
+                      return (
+                        <div key={inscripcion.id}>
+                          <div style={{ fontWeight: 700 }}>
+                            {inscripcion.grupo || "Clase sin grupo"}
+                          </div>
+
+                          <div
+                            style={{
+                              fontSize: 11,
+                              color: "var(--gr)",
+                              marginTop: 2,
+                            }}
+                          >
+                            {clasesAsignadas.length > 0
+                              ? clasesAsignadas
+                                  .map(
+                                    (clase) =>
+                                      `${clase.dia || clase.dia_semana || "Día"} ${
+                                        clase.hora_inicio || ""
+                                      }${clase.hora_fin ? ` - ${clase.hora_fin}` : ""}`,
+                                  )
+                                  .join(" · ")
+                              : "Sin clases específicas asignadas"}
+                          </div>
+                        </div>
+                      );
+                    })
+                  : alumno.grupo || detalle?.grupo || "-"}
               </span>
             </div>
             <div
@@ -1942,7 +1993,42 @@ export default function AlumnoExpediente({
                   ))}
                 </select>
               </div>
+              <div className="field" style={{ marginTop: 12 }}>
+                <label>Precio mensual personalizado (opcional)</label>
 
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  placeholder="Ej. 1400"
+                  value={precioPersonalizado}
+                  onChange={(e) => setPrecioPersonalizado(e.target.value)}
+                  style={{
+                    width: "100%",
+                    padding: "11px 13px",
+                    borderRadius: 8,
+                    border: "1px solid #2A2A2A",
+                    background: "var(--bk3)",
+                    color: "var(--wh)",
+                  }}
+                />
+
+                <input
+                  type="text"
+                  placeholder="Motivo, ej. promoción, convenio, descuento..."
+                  value={motivoPrecioPersonalizado}
+                  onChange={(e) => setMotivoPrecioPersonalizado(e.target.value)}
+                  style={{
+                    width: "100%",
+                    marginTop: 8,
+                    padding: "11px 13px",
+                    borderRadius: 8,
+                    border: "1px solid #2A2A2A",
+                    background: "var(--bk3)",
+                    color: "var(--wh)",
+                  }}
+                />
+              </div>
               <button
                 type="button"
                 className="btn-save"
@@ -1961,6 +2047,13 @@ export default function AlumnoExpediente({
                       fecha_inicio: new Date().toISOString().split("T")[0],
                       dia_pago:
                         alumno.dia_pago_efectivo || alumno.dia_pago || 1,
+                      precio_mensual_personalizado:
+                        precioPersonalizado !== ""
+                          ? Number(precioPersonalizado)
+                          : null,
+
+                      motivo_precio_personalizado:
+                        motivoPrecioPersonalizado || null,
                     });
 
                     setShowAgregarInscripcion(false);

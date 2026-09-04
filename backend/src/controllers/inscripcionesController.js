@@ -24,6 +24,8 @@ const crear = async (req, res) => {
       fecha_inicio,
       dia_pago,
       clase_ids = [],
+      precio_mensual_personalizado = null,
+      motivo_precio_personalizado = null,
     } = req.body;
 
     if (!alumno_id) {
@@ -34,15 +36,28 @@ const crear = async (req, res) => {
 
     const result = await query(
       `INSERT INTO inscripciones
-        (alumno_id, grupo_id, paquete_id, fecha_inicio, dia_pago)
-       VALUES ($1,$2,$3,$4,$5)
-       RETURNING *`,
+    (
+      alumno_id,
+      grupo_id,
+      paquete_id,
+      fecha_inicio,
+      dia_pago,
+      precio_mensual_personalizado,
+      motivo_precio_personalizado
+    )
+   VALUES ($1,$2,$3,$4,$5,$6,$7)
+   RETURNING *`,
       [
         alumno_id,
         grupo_id || null,
         paquete_id || null,
         fecha_inicio || new Date().toISOString().split("T")[0],
         dia_pago || null,
+        precio_mensual_personalizado !== null &&
+        precio_mensual_personalizado !== ""
+          ? Number(precio_mensual_personalizado)
+          : null,
+        motivo_precio_personalizado || null,
       ],
     );
 

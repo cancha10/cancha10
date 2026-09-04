@@ -16,13 +16,74 @@ const sesionesDelDia = async (req, res) => {
     if (!fecha) return res.status(400).json({ error: "fecha requerida" });
     const diaMap = { 0: 7, 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6 };
     const diaSemana = diaMap[new Date(fecha + "T12:00:00").getDay()];
-    const clases = await query(
-      `SELECT c.id AS clase_id, c.hora_inicio, c.hora_fin, g.id AS grupo_id, g.nombre AS grupo, g.tipo, g.capacidad, n.nombre AS nivel
-       FROM clases c JOIN grupos g ON g.id = c.grupo_id AND g.activo = TRUE
-       LEFT JOIN niveles n ON n.id = g.nivel_id
-       WHERE c.dia_semana = $1 AND c.activo = TRUE ORDER BY c.hora_inicio`,
-      [diaSemana],
-    );
+    let clases;
+
+    if (req.user.rol_id === 3) {
+      clases = await query(
+        `SELECT DISTINCT
+       c.id AS clase_id,
+       c.hora_inicio,
+       c.hora_fin,
+       g.id AS grupo_id,
+       g.nombre AS grupo,
+       g.tipo,
+       g.capacidad,
+       n.nombre AS nivel
+     FROM clases c
+     JOIN grupos g
+       ON g.id = c.grupo_id
+      AND g.activo = TRUE
+     LEFT JOIN niveles n
+       ON n.id = g.nivel_id
+     JOIN inscripciones i
+       ON i.grupo_id = g.id
+      AND i.estado = 'activa'
+     WHERE c.dia_semana = $1
+       AND c.activo = TRUE
+       AND i.alumno_id = (
+         SELECT id
+         FROM alumnos
+         WHERE usuario_id = $2
+       )
+       AND (
+         EXISTS (
+           SELECT 1
+           FROM inscripcion_clases ic
+           WHERE ic.inscripcion_id = i.id
+             AND ic.clase_id = c.id
+         )
+         OR NOT EXISTS (
+           SELECT 1
+           FROM inscripcion_clases ic
+           WHERE ic.inscripcion_id = i.id
+         )
+       )
+     ORDER BY c.hora_inicio`,
+        [diaSemana, req.user.id],
+      );
+    } else {
+      clases = await query(
+        `SELECT
+       c.id AS clase_id,
+       c.hora_inicio,
+       c.hora_fin,
+       g.id AS grupo_id,
+       g.nombre AS grupo,
+       g.tipo,
+       g.capacidad,
+       n.nombre AS nivel
+     FROM clases c
+     JOIN grupos g
+       ON g.id = c.grupo_id
+      AND g.activo = TRUE
+     LEFT JOIN niveles n
+       ON n.id = g.nivel_id
+     WHERE c.dia_semana = $1
+       AND c.activo = TRUE
+     ORDER BY c.hora_inicio`,
+        [diaSemana],
+      );
+    }
     const sesiones = [];
     for (const c of clases.rows) {
       let sesion = await query(
