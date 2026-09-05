@@ -3356,6 +3356,7 @@ function FormComprobante({ pagoId, onClose, onGuardar }) {
 function ViewMiEspacio({ usuario, showToast }) {
   const [reservas, setReservas] = useState([]);
   const [misPagos, setMisPagos] = useState([]);
+  const [horario, setHorario] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [perfil, setPerfil] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -3370,11 +3371,13 @@ function ViewMiEspacio({ usuario, showToast }) {
       Api.me(),
       Api.misReservas().catch(() => []),
       Api.misPagos().catch(() => []),
+      Api.horario().catch(() => []),
     ])
-      .then(([me, misReservas, pagosRes]) => {
+      .then(([me, misReservas, pagosRes, horarioRes]) => {
         setPerfil(me);
         setReservas(misReservas || []);
         setMisPagos(pagosRes || []);
+        setHorario(horarioRes || []);
         if (me?.alumno_id) {
           Api.listarFeedback(usuario.id)
             .then(setFeedback)
@@ -3401,7 +3404,31 @@ function ViewMiEspacio({ usuario, showToast }) {
 
   // Pago pendiente más reciente, para adjuntar comprobante
   const pagoPendiente = misPagos.find((p) => p.estado === "pendiente");
+  const misClases = Array.isArray(perfil?.inscripciones)
+    ? perfil.inscripciones.flatMap((inscripcion) =>
+        Array.isArray(inscripcion.clase_ids)
+          ? inscripcion.clase_ids
+              .map((claseId) => {
+                const clase = horario.find(
+                  (item) =>
+                    Number(item.clase_id || item.id) === Number(claseId),
+                );
 
+                if (!clase) return null;
+
+                return {
+                  claseId,
+                  grupo: inscripcion.grupo,
+                  paquete: inscripcion.paquete,
+                  dia: clase.dia || clase.dia_semana,
+                  horaInicio: clase.hora_inicio,
+                  horaFin: clase.hora_fin,
+                };
+              })
+              .filter(Boolean)
+          : [],
+      )
+    : [];
   const subirComprobante = () => {
     setShowComprobante(false);
     showToast("Comprobante enviado ✓");
@@ -3466,33 +3493,26 @@ function ViewMiEspacio({ usuario, showToast }) {
       </button>
 
       <div className="card">
-        <div className="card-label">Mis próximas clases</div>
-        {reservas.length === 0 ? (
-          <div className="empty">No tienes clases reservadas</div>
+        <div className="card-label">Mis clases</div>
+
+        {misClases.length === 0 ? (
+          <div className="empty">No tienes clases asignadas</div>
         ) : (
-          reservas.map((r) => {
-            const d = new Date(r.fecha + "T12:00:00");
-            return (
-              <div key={r.id} className="reserva-row">
-                <div className="reserva-fecha">
-                  <div className="res-dia">{DIAS[d.getDay()]}</div>
-                  <div className="res-num">{d.getDate()}</div>
+          misClases.map((clase) => (
+            <div
+              key={`${clase.claseId}-${clase.grupo}`}
+              className="reserva-row"
+            >
+              <div style={{ flex: 1 }}>
+                <div className="reserva-grupo">{clase.grupo}</div>
+                <div className="reserva-hora">
+                  {clase.dia || "Día"}{" "}
+                  {clase.horaInicio ? fmtH(clase.horaInicio) : ""}
+                  {clase.horaFin ? ` - ${fmtH(clase.horaFin)}` : ""}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <div className="reserva-grupo">{r.grupo}</div>
-                  <div className="reserva-hora">
-                    {fmtH(r.hora_inicio)} – {fmtH(r.hora_fin)}
-                  </div>
-                </div>
-                <button
-                  className="btn-cancelar"
-                  onClick={() => cancelarReserva(r.id)}
-                >
-                  Cancelar
-                </button>
               </div>
-            );
-          })
+            </div>
+          ))
         )}
       </div>
 

@@ -115,7 +115,40 @@ const perfil = async (req, res) => {
       return res.status(404).json({ error: "No encontrado" });
     }
 
-    res.json(result.rows[0]);
+    const inscripciones = await query(
+      `SELECT
+    i.*,
+    g.nombre AS grupo,
+    p.nombre AS paquete,
+    p.tipo AS tipo_paquete,
+    p.clases_semana,
+    p.precio_mensual,
+    p.precio_clase,
+    COALESCE(
+      (
+        SELECT array_agg(ic.clase_id ORDER BY ic.clase_id)
+        FROM inscripcion_clases ic
+        WHERE ic.inscripcion_id = i.id
+      ),
+      ARRAY[]::integer[]
+    ) AS clase_ids
+   FROM inscripciones i
+   LEFT JOIN grupos g ON g.id = i.grupo_id
+   LEFT JOIN paquetes p ON p.id = i.paquete_id
+   WHERE i.alumno_id = (
+     SELECT id
+     FROM alumnos
+     WHERE usuario_id = $1
+   )
+   AND i.estado = 'activa'
+   ORDER BY i.created_at ASC`,
+      [req.user.id],
+    );
+
+    res.json({
+      ...result.rows[0],
+      inscripciones: inscripciones.rows,
+    });
   } catch (err) {
     console.error("Error en perfil:", err);
     res.status(500).json({ error: "Error del servidor" });
