@@ -279,7 +279,7 @@ const agregarFeedback = async (req, res) => {
 };
 const asistenciaAlumno = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = req.params.id || req.user.id;
 
     const alumno = await query(
       `

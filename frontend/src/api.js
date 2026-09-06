@@ -82,7 +82,7 @@ const Api = {
     apiCall(`/auth/resetear-password/${usuarioId}`, { method: "POST" }),
 
   me: () => apiCall("/auth/me"),
-
+  miAsistencia: () => apiCall("/auth/me/asistencia"),
   // ── Alumnos ─────────────────────────────────────────────────────────
   listarAlumnos: () => apiCall("/alumnos"),
   obtenerAlumno: (id) => apiCall(`/alumnos/${id}`),

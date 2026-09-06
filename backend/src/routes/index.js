@@ -47,6 +47,7 @@ router.get(
   alumnosCtrl.asistenciaAlumno,
 );
 router.put("/alumnos/:id", authMiddleware, alumnosCtrl.actualizarAlumno);
+router.get("/auth/me/asistencia", authMiddleware, alumnosCtrl.asistenciaAlumno);
 router.delete(
   "/alumnos/:id",
   authMiddleware,

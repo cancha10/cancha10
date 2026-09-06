@@ -525,27 +525,77 @@ function WhatsAppButton() {
 // ── DateBar ───────────────────────────────────────────────────────────
 function DateBar({ selected, onChange }) {
   const days = [];
+
+  const base = selected ? new Date(`${selected}T12:00:00`) : new Date();
+
   for (let i = -3; i <= 3; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() + i);
+    const d = new Date(base);
+    d.setDate(base.getDate() + i);
+
     days.push({
       iso: d.toISOString().split("T")[0],
       dia: DIAS[d.getDay()],
       num: d.getDate(),
     });
   }
+
+  const moverSemana = (cantidad) => {
+    const nuevaFecha = new Date(base);
+    nuevaFecha.setDate(base.getDate() + cantidad);
+
+    onChange(nuevaFecha.toISOString().split("T")[0]);
+  };
+
   return (
-    <div className="date-bar">
-      {days.map((d) => (
-        <div
-          key={d.iso}
-          className={`dpill ${selected === d.iso ? "active" : ""}`}
-          onClick={() => onChange(d.iso)}
-        >
-          <span className="dpill-day">{d.dia}</span>
-          <span className="dpill-num">{d.num}</span>
-        </div>
-      ))}
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => moverSemana(-7)}
+        style={{
+          background: "transparent",
+          border: "1px solid rgba(255,255,255,.15)",
+          color: "inherit",
+          borderRadius: 8,
+          cursor: "pointer",
+          padding: "8px 10px",
+        }}
+      >
+        ‹
+      </button>
+
+      <div className="date-bar" style={{ flex: 1 }}>
+        {days.map((d) => (
+          <div
+            key={d.iso}
+            className={`dpill ${selected === d.iso ? "active" : ""}`}
+            onClick={() => onChange(d.iso)}
+          >
+            <span className="dpill-day">{d.dia}</span>
+            <span className="dpill-num">{d.num}</span>
+          </div>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        onClick={() => moverSemana(7)}
+        style={{
+          background: "transparent",
+          border: "1px solid rgba(255,255,255,.15)",
+          color: "inherit",
+          borderRadius: 8,
+          cursor: "pointer",
+          padding: "8px 10px",
+        }}
+      >
+        ›
+      </button>
     </div>
   );
 }
@@ -3357,6 +3407,7 @@ function ViewMiEspacio({ usuario, showToast }) {
   const [reservas, setReservas] = useState([]);
   const [misPagos, setMisPagos] = useState([]);
   const [horario, setHorario] = useState([]);
+  const [asistencias, setAsistencias] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [perfil, setPerfil] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -3372,12 +3423,14 @@ function ViewMiEspacio({ usuario, showToast }) {
       Api.misReservas().catch(() => []),
       Api.misPagos().catch(() => []),
       Api.horario().catch(() => []),
+      Api.miAsistencia().catch(() => []),
     ])
-      .then(([me, misReservas, pagosRes, horarioRes]) => {
+      .then(([me, misReservas, pagosRes, horarioRes, asistenciaRes]) => {
         setPerfil(me);
         setReservas(misReservas || []);
         setMisPagos(pagosRes || []);
         setHorario(horarioRes || []);
+        setAsistencias(asistenciaRes || []);
         if (me?.alumno_id) {
           Api.listarFeedback(usuario.id)
             .then(setFeedback)
@@ -3411,7 +3464,8 @@ function ViewMiEspacio({ usuario, showToast }) {
               .map((claseId) => {
                 const clase = horario.find(
                   (item) =>
-                    Number(item.clase_id || item.id) === Number(claseId),
+                    Number(item.clase_id || item.id) === Number(claseId) &&
+                    Number(item.grupo_id) === Number(inscripcion.grupo_id),
                 );
 
                 if (!clase) return null;
@@ -3429,6 +3483,52 @@ function ViewMiEspacio({ usuario, showToast }) {
           : [],
       )
     : [];
+  const clasesAgrupadas = Object.values(
+    misClases.reduce((acc, clase) => {
+      const clave = `${clase.grupo}-${clase.paquete || ""}`;
+
+      if (!acc[clave]) {
+        acc[clave] = {
+          grupo: clase.grupo,
+          paquete: clase.paquete,
+          horarios: [],
+        };
+      }
+
+      acc[clave].horarios.push({
+        dia: clase.dia,
+        horaInicio: clase.horaInicio,
+        horaFin: clase.horaFin,
+      });
+
+      return acc;
+    }, {}),
+  );
+  const ahora = new Date();
+  const mesActual = ahora.getMonth();
+  const anioActual = ahora.getFullYear();
+
+  const inicioPeriodo = new Date(anioActual, mesActual - 1, 1);
+  const finPeriodo = new Date(anioActual, mesActual + 1, 1);
+
+  const asistenciasMes = asistencias.filter((a) => {
+    if (!a.fecha) return false;
+
+    const fecha = new Date(a.fecha);
+
+    return fecha >= inicioPeriodo && fecha < finPeriodo;
+  });
+
+  const presentesMes = asistenciasMes.filter(
+    (a) => a.estado === "asistio",
+  ).length;
+
+  const faltasMes = asistenciasMes.filter((a) => a.estado === "falta").length;
+
+  const porcentajeAsistencia =
+    asistenciasMes.length > 0
+      ? Math.round((presentesMes / asistenciasMes.length) * 100)
+      : 0;
   const subirComprobante = () => {
     setShowComprobante(false);
     showToast("Comprobante enviado ✓");
@@ -3495,20 +3595,25 @@ function ViewMiEspacio({ usuario, showToast }) {
       <div className="card">
         <div className="card-label">Mis clases</div>
 
-        {misClases.length === 0 ? (
+        {clasesAgrupadas.length === 0 ? (
           <div className="empty">No tienes clases asignadas</div>
         ) : (
-          misClases.map((clase) => (
+          clasesAgrupadas.map((clase) => (
             <div
-              key={`${clase.claseId}-${clase.grupo}`}
+              key={`${clase.grupo}-${clase.paquete || ""}`}
               className="reserva-row"
             >
               <div style={{ flex: 1 }}>
                 <div className="reserva-grupo">{clase.grupo}</div>
+
                 <div className="reserva-hora">
-                  {clase.dia || "Día"}{" "}
-                  {clase.horaInicio ? fmtH(clase.horaInicio) : ""}
-                  {clase.horaFin ? ` - ${fmtH(clase.horaFin)}` : ""}
+                  {clase.horarios.map((horario, index) => (
+                    <div key={`${horario.dia}-${index}`}>
+                      {horario.dia || "Día"}{" "}
+                      {horario.horaInicio ? fmtH(horario.horaInicio) : ""}
+                      {horario.horaFin ? ` - ${fmtH(horario.horaFin)}` : ""}
+                    </div>
+                  ))}
                 </div>
               </div>
             </div>
@@ -3555,7 +3660,15 @@ function ViewMiEspacio({ usuario, showToast }) {
             <div key={i} className="pago-row">
               <div>
                 <div className="pago-nombre" style={{ fontSize: 14 }}>
-                  {fmtFechaCorta(p.periodo_inicio)}
+                  {p.paquete || "Pago"} ·{" "}
+                  {p.periodo_inicio
+                    ? new Date(
+                        `${p.periodo_inicio.split("T")[0]}T12:00:00`,
+                      ).toLocaleDateString("es-MX", {
+                        month: "long",
+                        year: "numeric",
+                      })
+                    : "Sin periodo"}
                 </div>
                 <div style={{ fontSize: 11, color: "var(--gr)" }}>
                   {p.metodo_pago || "Pendiente de método"}
@@ -3576,7 +3689,93 @@ function ViewMiEspacio({ usuario, showToast }) {
           ))
         )}
       </div>
+      <div className="card">
+        <div className="card-label">Mis asistencias</div>
 
+        <div
+          style={{
+            display: "flex",
+            gap: 24,
+            flexWrap: "wrap",
+            padding: "10px 0",
+          }}
+        >
+          <div>
+            <div style={{ fontSize: 11, color: "var(--gr)" }}>PRESENTES</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{presentesMes}</div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, color: "var(--gr)" }}>FALTAS</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>{faltasMes}</div>
+          </div>
+
+          <div>
+            <div style={{ fontSize: 11, color: "var(--gr)" }}>ASISTENCIA</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }}>
+              {porcentajeAsistencia}%
+            </div>
+          </div>
+        </div>
+
+        {asistenciasMes.length === 0 && (
+          <div className="empty">
+            Aún no hay asistencias registradas este mes
+          </div>
+        )}
+        {asistencias.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div
+              style={{
+                fontSize: 11,
+                color: "var(--gr)",
+                marginBottom: 8,
+                textTransform: "uppercase",
+              }}
+            >
+              Historial reciente
+            </div>
+
+            {asistencias.slice(0, 6).map((a, index) => (
+              <div
+                key={`${a.fecha}-${a.clase_id || index}`}
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  padding: "8px 0",
+                  borderTop: "1px solid rgba(255,255,255,0.06)",
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 12, fontWeight: 700 }}>
+                    {a.fecha
+                      ? new Date(a.fecha).toLocaleDateString("es-MX", {
+                          day: "2-digit",
+                          month: "short",
+                          year: "numeric",
+                        })
+                      : "Sin fecha"}
+                  </div>
+
+                  <div style={{ fontSize: 11, color: "var(--gr)" }}>
+                    {a.clase || "Clase"}
+                  </div>
+                </div>
+
+                <div
+                  style={{
+                    fontSize: 12,
+                    fontWeight: 700,
+                  }}
+                >
+                  {a.estado === "asistio" ? "✓ Asistió" : "✕ Ausente"}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
       <div className="card">
         <div className="card-label">Comentarios del coach</div>
         {feedback.length === 0 ? (
