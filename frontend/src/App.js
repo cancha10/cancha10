@@ -995,13 +995,20 @@ function ScoreSlider({ label, value, onChange }) {
 }
 
 // ── Ficha técnica completa (golpes + físico + táctico) ─────────────────
-function FichaTecnica({ alumnoId, nombreAlumno, isAdmin, onGuardar, onClose }) {
+function FichaTecnica({
+  alumnoId,
+  nombreAlumno,
+  nivelAlumno,
+  isAdmin,
+  onGuardar,
+  onClose,
+}) {
   const [ficha, setFicha] = useState(fichaVacia());
   const [notas, setNotas] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
+  const [mostrarDescripcionNivel, setMostrarDescripcionNivel] = useState(false);
   useEffect(() => {
     Api.obtenerFicha(alumnoId)
       .then((data) => {
@@ -1023,7 +1030,47 @@ function FichaTecnica({ alumnoId, nombreAlumno, isAdmin, onGuardar, onClose }) {
     const vals = arr.map((c) => ficha[c.key]);
     return (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1);
   };
+  const nivelC10 = (() => {
+    const nivel = String(nivelAlumno || "").toLowerCase();
 
+    if (nivel.includes("alto")) {
+      return { categoria: "A", nombre: "Alto rendimiento" };
+    }
+
+    if (nivel.includes("avanz")) {
+      return { categoria: "B", nombre: "Avanzado" };
+    }
+
+    if (nivel.includes("inter")) {
+      return { categoria: "C", nombre: "Intermedio" };
+    }
+
+    return { categoria: "D", nombre: "Principiante" };
+  })();
+  const descripcionNivel = {
+    D: {
+      titulo: "Sigues aprendiendo.",
+      texto:
+        "Controlar la pelota y mantenerla dentro de la cancha es el mayor reto. El saque, en lugar de una ventaja, todavía es un desafío.",
+    },
+    C: {
+      titulo: "Ya juegas tenis.",
+      texto:
+        "Tienes los golpes básicos, sacas, devuelves y puedes mantener varios intercambios. Ahora el reto es cometer menos errores y empezar a construir los puntos.",
+    },
+    B: {
+      titulo: "Tienes un juego completo.",
+      texto:
+        "Controlas los golpes, generas potencia y efectos, atacas, defiendes y puedes subir a la red. Ya no se trata solo de pasar la pelota: sabes qué quieres hacer con ella y puedes competir con consistencia.",
+    },
+    A: {
+      titulo: "El tenis es parte de tu proyecto de vida.",
+      texto:
+        "Entrenas con intensidad y constancia, compites con frecuencia y trabajas tu técnica, físico y mentalidad como un atleta. Estás preparado para sostener partidos exigentes y volver a entrenar o competir al día siguiente.",
+    },
+  };
+
+  const descripcionActual = descripcionNivel[nivelC10.categoria];
   const guardar = async () => {
     setSaving(true);
     setError("");
@@ -1064,6 +1111,58 @@ function FichaTecnica({ alumnoId, nombreAlumno, isAdmin, onGuardar, onClose }) {
         <div className="drawer-title">Ficha Técnica</div>
         <div className="drawer-sub">
           {nombreAlumno} · Escala 5 (bajo) – 10 (excelente)
+        </div>
+        <div
+          onClick={() => setMostrarDescripcionNivel((v) => !v)}
+          role="button"
+          style={{
+            marginTop: 12,
+            marginBottom: 14,
+            padding: "12px 14px",
+            border: "1px solid rgba(255,255,255,.12)",
+            borderRadius: 10,
+            background: "rgba(255,255,255,.03)",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 10,
+              color: "var(--gr)",
+              textTransform: "uppercase",
+              letterSpacing: 1,
+              marginBottom: 4,
+            }}
+          >
+            Nivel C10
+          </div>
+
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 800,
+              color: "var(--gold)",
+              textTransform: "uppercase",
+            }}
+          >
+            {nivelC10.categoria} · {nivelC10.nombre}
+          </div>
+          {mostrarDescripcionNivel && descripcionActual && (
+            <div
+              style={{
+                marginTop: 10,
+                paddingTop: 10,
+                borderTop: "1px solid rgba(255,255,255,.10)",
+                color: "var(--wh)",
+                fontSize: 13,
+                lineHeight: 1.5,
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                {descripcionActual.titulo}
+              </div>
+              <div style={{ opacity: 0.8 }}>{descripcionActual.texto}</div>
+            </div>
+          )}
         </div>
         {error && <div className="error-msg">{error}</div>}
 
@@ -3817,6 +3916,7 @@ function ViewMiEspacio({ usuario, showToast }) {
         <FichaTecnica
           alumnoId={usuario.id}
           nombreAlumno={usuario.nombre}
+          nivelAlumno={perfil?.nivel}
           isAdmin={false}
           onGuardar={() => {}}
           onClose={() => setShowFicha(false)}
