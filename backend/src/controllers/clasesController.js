@@ -873,7 +873,51 @@ const suspenderSesion = async (req, res) => {
     });
   }
 };
+const misReposicionesPendientes = async (req, res) => {
+  try {
+    const result = await query(
+      `
+      SELECT
+        r.id AS reposicion_id,
+        r.alumno_id,
+        r.inscripcion_id,
+        r.fecha_generada,
+        r.fecha_vencimiento,
+        g.nombre AS grupo_origen,
+        g.tipo AS tipo_grupo
+      FROM reposiciones r
+      JOIN alumnos al
+        ON al.id = r.alumno_id
+      JOIN usuarios u
+        ON u.id = al.usuario_id
+      JOIN asistencia a
+        ON a.id = r.asistencia_id
+      JOIN sesiones s
+        ON s.id = a.sesion_id
+      JOIN clases c
+        ON c.id = s.clase_id
+      JOIN grupos g
+        ON g.id = c.grupo_id
+      WHERE r.estado = 'pendiente'
+        AND g.tipo = 'grupal'
+        AND u.id = $1
+        AND (
+          r.fecha_vencimiento IS NULL
+          OR r.fecha_vencimiento >= CURRENT_DATE
+        )
+      ORDER BY
+        r.fecha_vencimiento ASC NULLS LAST,
+        r.fecha_generada ASC
+      `,
+      [req.user.id],
+    );
 
+    res.json(result.rows);
+  } catch (err) {
+    console.error("Error listando mis reposiciones:", err);
+    res.status(500).json({ error: "Error del servidor" });
+  }
+};
 module.exports = {
   horario,
   sesionesDelDia,
@@ -883,6 +927,7 @@ module.exports = {
   editarClase,
   eliminarClase,
   listarReposicionesPendientes,
+  misReposicionesPendientes,
   suspenderSesion,
   revertirReposicion,
   usarReposicion,

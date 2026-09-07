@@ -144,10 +144,21 @@ const perfil = async (req, res) => {
    ORDER BY i.created_at ASC`,
       [req.user.id],
     );
-
+    const estadoFinanciero = await query(
+      `
+    SELECT estado_pago, fecha_vencimiento, dias_estado
+    FROM resumen_alumnos
+    WHERE usuario_id = $1
+    LIMIT 1
+  `,
+      [req.user.id],
+    );
     res.json({
       ...result.rows[0],
       inscripciones: inscripciones.rows,
+      estado_pago: estadoFinanciero.rows[0]?.estado_pago || "sin_pago",
+      fecha_vencimiento: estadoFinanciero.rows[0]?.fecha_vencimiento || null,
+      dias_estado: estadoFinanciero.rows[0]?.dias_estado ?? null,
     });
   } catch (err) {
     console.error("Error en perfil:", err);

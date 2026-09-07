@@ -151,6 +151,7 @@ const Api = {
       }),
     }),
   listarReposicionesPendientes: () => apiCall("/reposiciones/pendientes"),
+  misReposicionesPendientes: () => apiCall("/reposiciones/mias"),
   revertirReposicion: (reposicionId) =>
     apiCall(`/reposiciones/${reposicionId}/revertir`, {
       method: "POST",

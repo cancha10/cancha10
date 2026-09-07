@@ -1051,7 +1051,7 @@ function FichaTecnica({
     D: {
       titulo: "Sigues aprendiendo.",
       texto:
-        "Controlar la pelota y mantenerla dentro de la cancha es el mayor reto. El saque, en lugar de una ventaja, todavía es un desafío.",
+        "Controlar la pelota y mantenerla dentro de la cancha es el mayor reto. El saque todavía es un desafío.",
     },
     C: {
       titulo: "Ya juegas tenis.",
@@ -1145,6 +1145,16 @@ function FichaTecnica({
             }}
           >
             {nivelC10.categoria} · {nivelC10.nombre}
+          </div>
+          <div
+            style={{
+              marginTop: 6,
+              fontSize: 10,
+              color: "var(--gr)",
+              opacity: 0.8,
+            }}
+          >
+            {mostrarDescripcionNivel ? "Ocultar ▲" : "Ver qué significa ▼"}
           </div>
           {mostrarDescripcionNivel && descripcionActual && (
             <div
@@ -3513,6 +3523,7 @@ function ViewMiEspacio({ usuario, showToast }) {
   const [showComprobante, setShowComprobante] = useState(false);
   const [showFicha, setShowFicha] = useState(false);
   const [error, setError] = useState("");
+  const [reposiciones, setReposiciones] = useState([]);
 
   const cargarTodo = () => {
     setLoading(true);
@@ -3523,19 +3534,30 @@ function ViewMiEspacio({ usuario, showToast }) {
       Api.misPagos().catch(() => []),
       Api.horario().catch(() => []),
       Api.miAsistencia().catch(() => []),
+      Api.misReposicionesPendientes().catch(() => []),
     ])
-      .then(([me, misReservas, pagosRes, horarioRes, asistenciaRes]) => {
-        setPerfil(me);
-        setReservas(misReservas || []);
-        setMisPagos(pagosRes || []);
-        setHorario(horarioRes || []);
-        setAsistencias(asistenciaRes || []);
-        if (me?.alumno_id) {
-          Api.listarFeedback(usuario.id)
-            .then(setFeedback)
-            .catch(() => {});
-        }
-      })
+      .then(
+        ([
+          me,
+          misReservas,
+          pagosRes,
+          horarioRes,
+          asistenciaRes,
+          reposicionesRes,
+        ]) => {
+          setPerfil(me);
+          setReservas(misReservas || []);
+          setMisPagos(pagosRes || []);
+          setHorario(horarioRes || []);
+          setAsistencias(asistenciaRes || []);
+          setReposiciones(reposicionesRes || []);
+          if (me?.alumno_id) {
+            Api.listarFeedback(usuario.id)
+              .then(setFeedback)
+              .catch(() => {});
+          }
+        },
+      )
       .catch((e) => setError(e.message || "No se pudo cargar tu información"))
       .finally(() => setLoading(false));
   };
@@ -3582,6 +3604,64 @@ function ViewMiEspacio({ usuario, showToast }) {
           : [],
       )
     : [];
+  const diasSemana = {
+    domingo: 0,
+    lunes: 1,
+    martes: 2,
+    miércoles: 3,
+    miercoles: 3,
+    jueves: 4,
+    viernes: 5,
+    sábado: 6,
+    sabado: 6,
+  };
+  const proximaClase =
+    misClases
+      .map((clase) => {
+        const ahora = new Date();
+
+        const diaTexto = String(clase.dia || "")
+          .toLowerCase()
+          .trim();
+
+        const diaObjetivo = diasSemana[diaTexto];
+
+        if (diaObjetivo === undefined || !clase.horaInicio) {
+          return null;
+        }
+
+        const [hora, minuto] = String(clase.horaInicio).split(":").map(Number);
+
+        const fecha = new Date(ahora);
+        let diasFaltan = (diaObjetivo - ahora.getDay() + 7) % 7;
+
+        fecha.setDate(ahora.getDate() + diasFaltan);
+        fecha.setHours(hora || 0, minuto || 0, 0, 0);
+
+        if (diasFaltan === 0 && fecha <= ahora) {
+          fecha.setDate(fecha.getDate() + 7);
+        }
+
+        return {
+          ...clase,
+          fecha,
+        };
+      })
+      .filter(Boolean)
+      .sort((a, b) => a.fecha - b.fecha)[0] || null;
+  const nombreProximoDia = (dia) => {
+    const hoy = new Date().getDay();
+    const diaClase = diasSemana[String(dia || "").toLowerCase()];
+
+    if (diaClase == null) return dia;
+
+    const diferencia = (diaClase - hoy + 7) % 7;
+
+    if (diferencia === 0) return "HOY";
+    if (diferencia === 1) return "MAÑANA";
+
+    return String(dia || "").toUpperCase();
+  };
   const clasesAgrupadas = Object.values(
     misClases.reduce((acc, clase) => {
       const clave = `${clase.grupo}-${clase.paquete || ""}`;
@@ -3664,8 +3744,83 @@ function ViewMiEspacio({ usuario, showToast }) {
           ${misPagos[0] ? parseFloat(misPagos[0].monto).toLocaleString() : "0"}{" "}
           <span>/ mes</span>
         </div>
+        {perfil?.estado_pago && (
+          <div
+            style={{
+              marginTop: 8,
+              fontSize: 12,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              color:
+                perfil.estado_pago === "al_corriente"
+                  ? "var(--ok)"
+                  : perfil.estado_pago === "vence_pronto"
+                    ? "var(--gold)"
+                    : perfil.estado_pago === "atrasado"
+                      ? "var(--danger)"
+                      : "var(--gr)",
+            }}
+          >
+            {perfil.estado_pago === "al_corriente"
+              ? "● Al corriente"
+              : perfil.estado_pago === "vence_pronto"
+                ? "● Próximo a vencer"
+                : perfil.estado_pago === "atrasado"
+                  ? "● Vencido"
+                  : "● Sin pago"}
+          </div>
+        )}
+        {perfil.fecha_vencimiento && (
+          <div
+            style={{
+              marginTop: 3,
+              fontSize: 11,
+              color: "var(--gr)",
+            }}
+          >
+            Vence: {fmtFechaCorta(perfil.fecha_vencimiento)}
+          </div>
+        )}
       </div>
+      {proximaClase && (
+        <div
+          className="card"
+          style={{
+            marginTop: 12,
+            marginBottom: 12,
+            padding: "14px 16px",
+          }}
+        >
+          <div className="card-label">🎾 Próxima clase</div>
 
+          <div
+            style={{
+              fontSize: 18,
+              fontWeight: 800,
+              color: "var(--gold)",
+              marginTop: 6,
+            }}
+          >
+            {nombreProximoDia(proximaClase.dia)} ·{" "}
+            {new Date(
+              `2000-01-01T${proximaClase.horaInicio}`,
+            ).toLocaleTimeString("es-MX", {
+              hour: "numeric",
+              minute: "2-digit",
+            })}
+          </div>
+
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--wh)",
+              marginTop: 4,
+            }}
+          >
+            {proximaClase.grupo}
+          </div>
+        </div>
+      )}
       <button
         onClick={() => setShowFicha(true)}
         style={{
@@ -3719,7 +3874,57 @@ function ViewMiEspacio({ usuario, showToast }) {
           ))
         )}
       </div>
+      {reposiciones.length > 0 && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div
+            style={{
+              fontSize: 12,
+              fontWeight: 800,
+              textTransform: "uppercase",
+              marginBottom: 10,
+            }}
+          >
+            🎾 Mis reposiciones
+          </div>
+          <div
+            style={{
+              fontSize: 18,
+              fontWeight: 800,
+            }}
+          >
+            {reposiciones.length}{" "}
+            {reposiciones.length === 1 ? "disponible" : "disponibles"}
+          </div>
+          <div style={{ marginTop: 12 }}>
+            {reposiciones.map((repo) => (
+              <div
+                key={repo.reposicion_id}
+                style={{
+                  padding: "9px 0",
+                  borderTop: "1px solid var(--line)",
+                  fontSize: 12,
+                }}
+              >
+                <div style={{ fontWeight: 700 }}>
+                  {repo.grupo_origen || "Clase grupal"}
+                </div>
 
+                <div
+                  style={{
+                    marginTop: 3,
+                    color: "var(--gr)",
+                    fontSize: 11,
+                  }}
+                >
+                  {repo.fecha_vencimiento
+                    ? `Vence: ${fmtFechaCorta(repo.fecha_vencimiento)}`
+                    : "Sin fecha de vencimiento"}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="card">
         <div
           style={{
@@ -3848,13 +4053,7 @@ function ViewMiEspacio({ usuario, showToast }) {
               >
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700 }}>
-                    {a.fecha
-                      ? new Date(a.fecha).toLocaleDateString("es-MX", {
-                          day: "2-digit",
-                          month: "short",
-                          year: "numeric",
-                        })
-                      : "Sin fecha"}
+                    {a.fecha ? fmtFechaCorta(a.fecha) : "Sin fecha"}
                   </div>
 
                   <div style={{ fontSize: 11, color: "var(--gr)" }}>

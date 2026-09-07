@@ -109,6 +109,11 @@ router.get(
   adminOInstructor,
   clasesCtrl.listarReposicionesPendientes,
 );
+router.get(
+  "/reposiciones/mias",
+  authMiddleware,
+  clasesCtrl.misReposicionesPendientes,
+);
 router.post(
   "/reposiciones/:reposicionId/usar",
   authMiddleware,
