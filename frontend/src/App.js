@@ -1275,6 +1275,7 @@ function FormClase({ inicial, onClose, onGuardar }) {
       hi: "17:00",
       hf: "18:00",
       tipo: "adulto",
+      modalidad: "grupal",
       nivel: "principiante",
       cap: "",
     },
@@ -1421,17 +1422,14 @@ function FormClase({ inicial, onClose, onGuardar }) {
           style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}
         >
           <div className="field">
-            <label>Tipo</label>
+            <label>Tipo de clase</label>
             <select
               value={form.tipo}
               onChange={(e) => set("tipo", e.target.value)}
               style={selStyle}
             >
-              {TIPO_OPTS.map((t) => (
-                <option key={t} value={t}>
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </option>
-              ))}
+              <option value="grupal">Grupal</option>
+              <option value="particular">Particular</option>
             </select>
           </div>
           <div className="field">

@@ -411,7 +411,7 @@ const crearClase = async (req, res) => {
       [
         grupo,
         nivel_id || null,
-        tipo === "Particular" ? "particular" : "grupal",
+        tipo === "particular" ? "particular" : "grupal",
         capacidad || null,
       ],
     );
@@ -432,9 +432,13 @@ const editarClase = async (req, res) => {
   try {
     const { grupoId } = req.params;
     const { grupo, dias, hi, hf, tipo, nivel_id, capacidad } = req.body;
+    const tipoGrupo =
+      String(tipo || "").toLowerCase() === "particular"
+        ? "particular"
+        : "grupal";
     await query(
       "UPDATE grupos SET nombre=$1, nivel_id=$2, tipo=$3, capacidad=$4 WHERE id=$5",
-      [grupo, nivel_id || null, tipo || "grupal", capacidad || null, grupoId],
+      [grupo, nivel_id || null, tipoGrupo, capacidad || null, grupoId],
     );
     await query("UPDATE clases SET activo=FALSE WHERE grupo_id=$1", [grupoId]);
     for (const dia of dias)
