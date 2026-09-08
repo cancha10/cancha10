@@ -3741,7 +3741,12 @@ function ViewMiEspacio({ usuario, showToast }) {
             "Sin paquete activo"}
         </div>
         <div className="perfil-precio">
-          ${misPagos[0] ? parseFloat(misPagos[0].monto).toLocaleString() : "0"}{" "}
+          $
+          {parseFloat(
+            perfil.inscripciones?.[0]?.precio_mensual_personalizado ??
+              perfil.inscripciones?.[0]?.precio_mensual ??
+              0,
+          ).toLocaleString()}
           <span>/ mes</span>
         </div>
         {perfil?.estado_pago && (
@@ -4466,7 +4471,12 @@ export default function App() {
     return (
       <>
         <LoginScreen
-          onLogin={(u) => setUsuario(u)}
+          onLogin={(u) => {
+            setUsuario(u);
+            if (u.rol === "alumno") {
+              setTab("mi");
+            }
+          }}
           onMostrarInscripcion={() => setShowInscripcion(true)}
         />
         {showInscripcion && (

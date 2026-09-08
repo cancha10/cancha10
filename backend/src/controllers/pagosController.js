@@ -75,9 +75,12 @@ const misPagos = async (req, res) => {
     );
     if (!alumnoRes.rows.length) return res.json([]);
     const result = await query(
-      `SELECT p.*, pa.nombre AS paquete FROM pagos p
-       LEFT JOIN inscripciones i ON i.id = p.inscripcion_id LEFT JOIN paquetes pa ON pa.id = i.paquete_id
-       WHERE p.alumno_id=$1 ORDER BY p.created_at DESC`,
+      `SELECT p.*, pa.nombre AS paquete
+   FROM pagos p
+   LEFT JOIN inscripciones i ON i.id = p.inscripcion_id
+   LEFT JOIN paquetes pa ON pa.id = i.paquete_id
+   WHERE p.alumno_id = $1
+   ORDER BY p.periodo_fin DESC NULLS LAST, p.created_at DESC`,
       [alumnoRes.rows[0].id],
     );
     res.json(result.rows);
