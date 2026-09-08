@@ -3736,7 +3736,9 @@ function ViewMiEspacio({ usuario, showToast }) {
         </div>
         <div className="perfil-divider" />
         <div className="perfil-pkg-label">
-          {misPagos[0]?.paquete || "Sin paquete activo"}
+          {perfil.inscripciones?.[0]?.paquete ||
+            misPagos[0]?.paquete ||
+            "Sin paquete activo"}
         </div>
         <div className="perfil-precio">
           ${misPagos[0] ? parseFloat(misPagos[0].monto).toLocaleString() : "0"}{" "}
@@ -4409,7 +4411,7 @@ function LoginScreen({ onLogin, onMostrarInscripcion }) {
 // ── App ───────────────────────────────────────────────────────────────
 export default function App() {
   const [usuario, setUsuario] = useState(null);
-  const [tab, setTab] = useState("hoy");
+  const [tab, setTab] = useState("mi");
   const [toast, setToast] = useState({ msg: "", err: false });
   const [showInscripcion, setShowInscripcion] = useState(false);
   const [cargandoSesion, setCargandoSesion] = useState(true);

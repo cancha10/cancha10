@@ -124,14 +124,23 @@ const perfil = async (req, res) => {
     p.clases_semana,
     p.precio_mensual,
     p.precio_clase,
-    COALESCE(
-      (
-        SELECT array_agg(ic.clase_id ORDER BY ic.clase_id)
-        FROM inscripcion_clases ic
-        WHERE ic.inscripcion_id = i.id
-      ),
-      ARRAY[]::integer[]
-    ) AS clase_ids
+   COALESCE(
+  (
+    SELECT array_agg(ic.clase_id ORDER BY ic.clase_id)
+FROM inscripcion_clases ic
+JOIN clases c_actual
+  ON c_actual.id = ic.clase_id
+WHERE ic.inscripcion_id = i.id
+  AND c_actual.activo = TRUE
+  ),
+  (
+    SELECT array_agg(c.id ORDER BY c.id)
+    FROM clases c
+    WHERE c.grupo_id = i.grupo_id
+      AND c.activo = TRUE
+  ),
+  ARRAY[]::integer[]
+) AS clase_ids
    FROM inscripciones i
    LEFT JOIN grupos g ON g.id = i.grupo_id
    LEFT JOIN paquetes p ON p.id = i.paquete_id

@@ -440,12 +440,43 @@ const editarClase = async (req, res) => {
       "UPDATE grupos SET nombre=$1, nivel_id=$2, tipo=$3, capacidad=$4 WHERE id=$5",
       [grupo, nivel_id || null, tipoGrupo, capacidad || null, grupoId],
     );
-    await query("UPDATE clases SET activo=FALSE WHERE grupo_id=$1", [grupoId]);
-    for (const dia of dias)
-      await query(
-        "INSERT INTO clases (grupo_id, dia_semana, hora_inicio, hora_fin) VALUES ($1,$2,$3,$4)",
-        [grupoId, dia, hi, hf],
-      );
+    const clasesActuales = await query(
+      `SELECT id, dia_semana
+   FROM clases
+   WHERE grupo_id = $1
+     AND activo = TRUE`,
+      [grupoId],
+    );
+
+    for (const claseActual of clasesActuales.rows) {
+      if (!dias.includes(claseActual.dia_semana)) {
+        await query("UPDATE clases SET activo=FALSE WHERE id=$1", [
+          claseActual.id,
+        ]);
+      }
+    }
+
+    for (const dia of dias) {
+      const existente = clasesActuales.rows.find((c) => c.dia_semana === dia);
+
+      if (existente) {
+        await query(
+          `UPDATE clases
+       SET hora_inicio=$1,
+           hora_fin=$2,
+           activo=TRUE
+       WHERE id=$3`,
+          [hi, hf, existente.id],
+        );
+      } else {
+        await query(
+          `INSERT INTO clases
+       (grupo_id, dia_semana, hora_inicio, hora_fin)
+       VALUES ($1,$2,$3,$4)`,
+          [grupoId, dia, hi, hf],
+        );
+      }
+    }
     res.json({ mensaje: "Clase actualizada" });
   } catch (err) {
     console.error("Error editando clase:", err);
