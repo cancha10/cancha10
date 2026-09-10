@@ -103,6 +103,11 @@ const Api = {
       method: "PATCH",
       body: JSON.stringify({ clase_ids }),
     }),
+  actualizarInscripcion: (id, datos) =>
+    apiCall(`/inscripciones/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(datos),
+    }),
   darDeBajaInscripcion: (id, datos = {}) =>
     apiCall(`/inscripciones/${id}/baja`, {
       method: "PATCH",

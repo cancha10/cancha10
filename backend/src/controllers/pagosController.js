@@ -112,8 +112,15 @@ const actualizarEstado = async (req, res) => {
 const editarPago = async (req, res) => {
   try {
     const { id } = req.params;
-    const { tipo, monto, metodo_pago, periodo_inicio, periodo_fin, notas } =
-      req.body;
+    const {
+      tipo,
+      monto,
+      metodo_pago,
+      periodo_inicio,
+      periodo_fin,
+      notas,
+      inscripcion_id,
+    } = req.body;
 
     if (monto !== undefined && Number(monto) <= 0) {
       return res.status(400).json({
@@ -130,8 +137,9 @@ const editarPago = async (req, res) => {
           metodo_pago = COALESCE($3, metodo_pago),
           periodo_inicio = COALESCE($4, periodo_inicio),
           periodo_fin = COALESCE($5, periodo_fin),
-          notas = COALESCE($6, notas)
-        WHERE id = $7
+          notas = COALESCE($6, notas),
+          inscripcion_id = COALESCE($7, inscripcion_id)
+        WHERE id = $8
         RETURNING *
       `,
       [
@@ -141,6 +149,7 @@ const editarPago = async (req, res) => {
         periodo_inicio || null,
         periodo_fin || null,
         notas ?? null,
+        inscripcion_id || null,
         id,
       ],
     );

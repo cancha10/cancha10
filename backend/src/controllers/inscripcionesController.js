@@ -278,6 +278,72 @@ const eliminarPaquete = async (req, res) => {
     res.status(500).json({ error: "Error del servidor" });
   }
 };
+const actualizar = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const {
+      grupo_id,
+      paquete_id,
+      precio_mensual_personalizado,
+      motivo_precio_personalizado,
+    } = req.body;
+
+    const inscripcion = await query(
+      `
+      SELECT id
+      FROM inscripciones
+      WHERE id = $1
+        AND estado = 'activa'
+      `,
+      [id],
+    );
+
+    if (!inscripcion.rows.length) {
+      return res.status(404).json({
+        error: "Inscripción activa no encontrada",
+      });
+    }
+
+    const precio =
+      precio_mensual_personalizado !== undefined &&
+      precio_mensual_personalizado !== null &&
+      precio_mensual_personalizado !== ""
+        ? Number(precio_mensual_personalizado)
+        : null;
+
+    const result = await query(
+      `
+      UPDATE inscripciones
+      SET
+        grupo_id = COALESCE($1, grupo_id),
+        paquete_id = COALESCE($2, paquete_id),
+        precio_mensual_personalizado = $3,
+        motivo_precio_personalizado = $4
+      WHERE id = $5
+        AND estado = 'activa'
+      RETURNING *
+      `,
+      [
+        grupo_id || null,
+        paquete_id || null,
+        precio,
+        motivo_precio_personalizado || null,
+        id,
+      ],
+    );
+
+    return res.json({
+      mensaje: "Inscripción actualizada",
+      inscripcion: result.rows[0],
+    });
+  } catch (err) {
+    console.error("Error actualizando inscripción:", err);
+
+    return res.status(500).json({
+      error: "Error del servidor",
+    });
+  }
+};
 const actualizarClases = async (req, res) => {
   try {
     const { id } = req.params;
@@ -355,6 +421,7 @@ module.exports = {
   renovar,
   darDeBaja,
   actualizarDiaPago,
+  actualizar,
   actualizarClases,
   listarPaquetes,
   crearPaquete,

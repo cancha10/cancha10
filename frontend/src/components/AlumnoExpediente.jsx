@@ -69,7 +69,15 @@ function obtenerMontoAlumno(alumno = {}) {
   );
 }
 
-function EditarAlumnoModal({ alumno, detalle, onClose, onGuardado }) {
+function EditarAlumnoModal({
+  alumno,
+  detalle,
+  clasesDisponibles,
+  paquetesDisponibles,
+  onClose,
+  onGuardado,
+}) {
+  const inscripcionActual = detalle?.inscripciones?.[0] || null;
   const nombreBase = separarNombre(alumno?.n || alumno?.nombre_completo || "");
   const nivelActual = detalle?.nivel || alumno?.nivel || "";
 
@@ -83,6 +91,12 @@ function EditarAlumnoModal({ alumno, detalle, onClose, onGuardado }) {
     email: detalle?.email || alumno?.email || "",
     nivel_id: detalle?.nivel_id || alumno?.nivel_id || nivelIdInicial,
     tipo_clase: detalle?.tipo_clase || alumno?.tipo_clase || "grupal",
+    paquete_id: inscripcionActual?.paquete_id || "",
+    grupo_id: inscripcionActual?.grupo_id || "",
+    precio_mensual_personalizado:
+      inscripcionActual?.precio_mensual_personalizado ?? "",
+    motivo_precio_personalizado:
+      inscripcionActual?.motivo_precio_personalizado || "",
     notas: detalle?.notas || alumno?.notas || "",
   });
 
@@ -109,7 +123,17 @@ function EditarAlumnoModal({ alumno, detalle, onClose, onGuardado }) {
         tipo_clase: form.tipo_clase,
         notas: form.notas,
       });
-
+      if (inscripcionActual?.id) {
+        await Api.actualizarInscripcion(inscripcionActual.id, {
+          paquete_id: form.paquete_id ? Number(form.paquete_id) : null,
+          grupo_id: form.grupo_id ? Number(form.grupo_id) : null,
+          precio_mensual_personalizado:
+            form.precio_mensual_personalizado !== ""
+              ? Number(form.precio_mensual_personalizado)
+              : null,
+          motivo_precio_personalizado: form.motivo_precio_personalizado || null,
+        });
+      }
       onGuardado();
     } catch (e) {
       setError(e.message || "No se pudo actualizar el alumno");
@@ -206,7 +230,66 @@ function EditarAlumnoModal({ alumno, detalle, onClose, onGuardado }) {
             ))}
           </select>
         </div>
+        <div
+          style={{
+            marginTop: 18,
+            paddingTop: 16,
+            borderTop: "1px solid #2A2A2A",
+          }}
+        >
+          <div
+            style={{
+              fontSize: 12,
+              color: "var(--gold)",
+              fontWeight: 800,
+              marginBottom: 12,
+              textTransform: "uppercase",
+            }}
+          >
+            Inscripción actual
+          </div>
 
+          <div className="field">
+            <label>Paquete vigente</label>
+            <select
+              value={form.paquete_id}
+              onChange={(e) => set("paquete_id", e.target.value)}
+              style={selStyle}
+            >
+              <option value="">Sin paquete</option>
+              {(paquetesDisponibles || []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nombre}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="field">
+            <label>Precio mensual personalizado</label>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              value={form.precio_mensual_personalizado}
+              onChange={(e) =>
+                set("precio_mensual_personalizado", e.target.value)
+              }
+              placeholder="Dejar vacío para usar precio del paquete"
+            />
+          </div>
+
+          <div className="field">
+            <label>Motivo del precio personalizado</label>
+            <input
+              value={form.motivo_precio_personalizado}
+              onChange={(e) =>
+                set("motivo_precio_personalizado", e.target.value)
+              }
+              placeholder="Ej. descuento especial, convenio, ajuste"
+            />
+          </div>
+        </div>
         <div className="field">
           <label>Notas administrativas</label>
           <textarea
@@ -319,6 +402,7 @@ function RegistrarPagoModal({
       ? pagoInicial.periodo_fin.split("T")[0]
       : "",
     notas: pagoInicial?.notas || "",
+    inscripcion_id: pagoInicial?.inscripcion_id || alumno.inscripcion_id || "",
   });
 
   const [guardando, setGuardando] = useState(false);
@@ -430,7 +514,35 @@ function RegistrarPagoModal({
             <option value="mercado_pago">Mercado Pago</option>
           </select>
         </div>
+        {pagoInicial && (
+          <div className="field">
+            <label>Paquete correspondiente a este pago</label>
+            <select
+              value={form.inscripcion_id}
+              onChange={(e) => set("inscripcion_id", e.target.value)}
+            >
+              {pagoInicial?.inscripcion_id && (
+                <option value={pagoInicial.inscripcion_id}>
+                  {pagoInicial.paquete || "Inscripción original"}
+                </option>
+              )}
 
+              {(alumno.inscripciones || [])
+                .filter(
+                  (inscripcion) =>
+                    Number(inscripcion.id) !==
+                    Number(pagoInicial?.inscripcion_id),
+                )
+                .map((inscripcion) => (
+                  <option key={inscripcion.id} value={inscripcion.id}>
+                    {inscripcion.paquete ||
+                      inscripcion.grupo ||
+                      "Inscripción activa"}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
         <div className="field">
           <label>Periodo inicio</label>
           <input
@@ -1858,6 +1970,8 @@ export default function AlumnoExpediente({
           <EditarAlumnoModal
             alumno={alumno}
             detalle={detalle}
+            clasesDisponibles={clasesDisponibles}
+            paquetesDisponibles={paquetesDisponibles}
             onClose={() => setShowEditar(false)}
             onGuardado={guardarEdicionAlumno}
           />

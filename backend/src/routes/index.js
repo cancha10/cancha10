@@ -167,6 +167,12 @@ router.patch(
   inscripcionesCtrl.actualizarDiaPago,
 );
 router.patch(
+  "/inscripciones/:id",
+  authMiddleware,
+  soloAdmin,
+  inscripcionesCtrl.actualizar,
+);
+router.patch(
   "/inscripciones/:id/clases",
   authMiddleware,
   soloAdmin,
