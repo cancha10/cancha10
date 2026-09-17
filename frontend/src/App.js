@@ -999,6 +999,7 @@ function FichaTecnica({
   alumnoId,
   nombreAlumno,
   nivelAlumno,
+  grupoAlumno,
   isAdmin,
   onGuardar,
   onClose,
@@ -1032,6 +1033,15 @@ function FichaTecnica({
   };
   const nivelC10 = (() => {
     const nivel = String(nivelAlumno || "").toLowerCase();
+    const grupo = String(grupoAlumno || "").toLowerCase();
+
+    if (
+      grupo.includes("niñ") ||
+      grupo.includes("nino") ||
+      grupo.includes("nina")
+    ) {
+      return { categoria: "D", nombre: "Principiante" };
+    }
 
     if (nivel.includes("alto")) {
       return { categoria: "A", nombre: "Alto rendimiento" };
@@ -4121,6 +4131,7 @@ function ViewMiEspacio({ usuario, showToast }) {
           alumnoId={usuario.id}
           nombreAlumno={usuario.nombre}
           nivelAlumno={perfil?.nivel}
+          grupoAlumno={perfil?.inscripciones?.[0]?.grupo}
           isAdmin={false}
           onGuardar={() => {}}
           onClose={() => setShowFicha(false)}
