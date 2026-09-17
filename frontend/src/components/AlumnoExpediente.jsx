@@ -1981,6 +1981,7 @@ export default function AlumnoExpediente({
           <FichaTecnicaComponent
             alumnoId={alumno.id}
             nombreAlumno={alumno.n || alumno.nombre_completo}
+            nivelAlumno={detalle?.nivel || alumno?.nivel}
             isAdmin={true}
             onGuardar={guardarFicha}
             onClose={() => setShowFicha(false)}
