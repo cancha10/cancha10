@@ -510,18 +510,27 @@ const listarReposicionesPendientes = async (req, res) => {
         g.nombre AS grupo_origen,
         g.tipo AS tipo_grupo
       FROM reposiciones r
-      JOIN alumnos al
-        ON al.id = r.alumno_id
-      JOIN usuarios u
-        ON u.id = al.usuario_id
-      JOIN asistencia a
-        ON a.id = r.asistencia_id
-      JOIN sesiones s
-        ON s.id = a.sesion_id
-      JOIN clases c
-        ON c.id = s.clase_id
-      JOIN grupos g
-        ON g.id = c.grupo_id
+
+JOIN alumnos al
+  ON al.id = r.alumno_id
+
+JOIN usuarios u
+  ON u.id = al.usuario_id
+
+LEFT JOIN asistencia a
+  ON a.id = r.asistencia_id
+
+LEFT JOIN sesiones s
+  ON s.id = a.sesion_id
+
+LEFT JOIN clases c
+  ON c.id = s.clase_id
+
+LEFT JOIN inscripciones i
+  ON i.id = r.inscripcion_id
+
+JOIN grupos g
+  ON g.id = COALESCE(c.grupo_id, i.grupo_id)
       WHERE r.estado = 'pendiente'
         AND g.tipo = 'grupal'
         AND (
