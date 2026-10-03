@@ -26,6 +26,7 @@ const registrar = async (req, res) => {
       periodo_inicio,
       periodo_fin,
       metodo_pago,
+      horas_compradas,
       notas,
     } = req.body;
     if (!alumno_id || !monto)
@@ -45,6 +46,22 @@ const registrar = async (req, res) => {
         notas || null,
       ],
     );
+    // Si el pago corresponde a un paquete de horas, crear el saldo de horas
+    if (horas_compradas && Number(horas_compradas) > 0) {
+      await query(
+        `
+    INSERT INTO paquetes_horas (
+      alumno_id,
+      pago_id,
+      horas_compradas,
+      horas_disponibles,
+      precio_total
+    )
+    VALUES ($1, $2, $3, $3, $4)
+    `,
+        [alumno_id, result.rows[0].id, Number(horas_compradas), monto],
+      );
+    }
     res.status(201).json({ mensaje: "Pago registrado", pago: result.rows[0] });
   } catch (err) {
     console.error("Error registrando pago:", err);

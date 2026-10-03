@@ -36,7 +36,25 @@ const obtenerAlumno = async (req, res) => {
        ORDER BY created_at DESC`,
       [id],
     );
-
+    const paquetesHoras = await query(
+      `SELECT
+     id,
+     pago_id,
+     horas_compradas,
+     horas_disponibles,
+     precio_total,
+     fecha_compra,
+     estado,
+     notas
+   FROM paquetes_horas
+   WHERE alumno_id = (
+     SELECT id
+     FROM alumnos
+     WHERE usuario_id = $1
+   )
+   ORDER BY fecha_compra DESC`,
+      [id],
+    );
     const inscripciones = await query(
       `SELECT
       i.*,
@@ -103,6 +121,7 @@ COALESCE(
     res.json({
       ...alumno.rows[0],
       historial_pagos: historial.rows,
+      paquetes_horas: paquetesHoras.rows,
       inscripcion: inscripciones.rows[0] || null,
       inscripciones: inscripciones.rows,
       estado_pago: estadoPago,

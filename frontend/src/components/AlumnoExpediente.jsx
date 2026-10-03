@@ -394,6 +394,7 @@ function RegistrarPagoModal({
   const [form, setForm] = useState({
     tipo: pagoInicial?.tipo || "mensualidad",
     monto: pagoInicial?.monto || alumno.monto || "",
+    horas_compradas: pagoInicial?.horas_compradas || "",
     metodo_pago: pagoInicial?.metodo_pago || "efectivo",
     periodo_inicio: pagoInicial?.periodo_inicio
       ? pagoInicial.periodo_inicio.split("T")[0]
@@ -456,12 +457,20 @@ function RegistrarPagoModal({
       alert("Ingresa un monto válido");
       return;
     }
-
+    if (
+      form.tipo === "paquete_horas" &&
+      (!form.horas_compradas || Number(form.horas_compradas) <= 0)
+    ) {
+      alert("Indica cuántas horas incluye el paquete");
+      return;
+    }
     setGuardando(true);
 
     await onGuardar({
       ...form,
       monto: Number(form.monto),
+      horas_compradas:
+        form.tipo === "paquete_horas" ? Number(form.horas_compradas) : null,
     });
 
     setGuardando(false);
@@ -488,10 +497,23 @@ function RegistrarPagoModal({
             <option value="clase_particular">Clase particular</option>
             <option value="torneo">Torneo</option>
             <option value="tienda">Tienda</option>
+            <option value="paquete_horas">Paquete de horas</option>
             <option value="otro">Otro</option>
           </select>
         </div>
-
+        {form.tipo === "paquete_horas" && (
+          <div className="field">
+            <label>Horas compradas</label>
+            <input
+              type="number"
+              min="0.5"
+              step="0.5"
+              value={form.horas_compradas}
+              onChange={(e) => set("horas_compradas", e.target.value)}
+              placeholder="Ej. 10"
+            />
+          </div>
+        )}
         <div className="field">
           <label>Monto</label>
           <input
@@ -612,6 +634,7 @@ export default function AlumnoExpediente({
 
   const [feedback, setFeedback] = useState([]);
   const [pagos, setPagos] = useState([]);
+  const [paquetesHoras, setPaquetesHoras] = useState([]);
   const [asistencias, setAsistencias] = useState([]);
   const [showRegistrarPago, setShowRegistrarPago] = useState(false);
   const [showEditarPago, setShowEditarPago] = useState(false);
@@ -645,6 +668,7 @@ export default function AlumnoExpediente({
         setFeedback(fb || []);
         setDetalle(det);
         setPagos(det?.historial_pagos || []);
+        setPaquetesHoras(det?.paquetes_horas || []);
         setAsistencias(asist || []);
       })
       .finally(() => setLoadingDetalle(false));
@@ -736,6 +760,7 @@ export default function AlumnoExpediente({
         tipo: datosPago.tipo,
         monto: datosPago.monto,
         metodo_pago: datosPago.metodo_pago,
+        horas_compradas: datosPago.horas_compradas || null,
         periodo_inicio: datosPago.periodo_inicio || null,
         periodo_fin: datosPago.periodo_fin || null,
         notas: datosPago.notas || null,
@@ -1520,6 +1545,40 @@ export default function AlumnoExpediente({
             >
               💳 Registrar pago
             </button>
+            {paquetesHoras.length > 0 && (
+              <div
+                style={{
+                  marginTop: 12,
+                  marginBottom: 16,
+                  padding: 12,
+                  border: "1px solid var(--gold)",
+                  borderRadius: 8,
+                }}
+              >
+                <div className="card-label">Paquetes de horas</div>
+
+                {paquetesHoras.map((ph) => (
+                  <div key={ph.id} style={{ marginTop: 8 }}>
+                    <div
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 800,
+                        color: "var(--wh)",
+                      }}
+                    >
+                      🎾 {parseFloat(ph.horas_disponibles)} horas disponibles
+                    </div>
+
+                    <div
+                      style={{ fontSize: 11, color: "var(--gr)", marginTop: 3 }}
+                    >
+                      Compradas: {parseFloat(ph.horas_compradas)} · Precio: $
+                      {parseFloat(ph.precio_total || 0).toLocaleString()}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="card-label">Historial de pagos</div>
 
             {loadingDetalle ? (

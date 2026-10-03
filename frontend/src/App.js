@@ -2907,6 +2907,10 @@ function ViewPagos({ showToast }) {
   const pendientes = pagos.filter((p) => p.estado !== "pagado");
   const vencidos = pendientes.filter((p) => p.estado === "vencido").length;
   const alCorriente = pagos.filter((p) => p.estado === "pagado").length;
+  const ultimosPagos = pagos
+    .filter((p) => p.estado === "pagado" && p.fecha_pago)
+    .sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))
+    .slice(0, 10);
 
   const cobrar = async (pago) => {
     try {
@@ -3019,38 +3023,68 @@ function ViewPagos({ showToast }) {
           Cargando...
         </div>
       ) : tab === "cobranza" ? (
-        <div className="card">
-          <div className="card-label">
-            Por cobrar ({vencidos} vencidos · {alCorriente} al corriente)
-          </div>
-          {pendientes.length === 0 ? (
-            <div className="empty">
-              <div className="empty-icon">✅</div>Todos al corriente
+        <div>
+          <div className="card">
+            <div className="card-label">
+              Por cobrar ({vencidos} vencidos · {alCorriente} al corriente)
             </div>
-          ) : (
-            pendientes.map((p) => (
-              <div key={p.id} className="pago-row">
-                <div>
-                  <div className="pago-nombre">{p.alumno_nombre}</div>
-                  <div className="pago-paquete">{p.paquete}</div>
-                  <span
-                    className={`pago-tag tag-${p.estado}`}
-                    style={{ display: "inline-block", marginTop: 6 }}
-                  >
-                    {p.estado}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <div className="pago-monto">
-                    ${parseFloat(p.monto).toLocaleString()}
-                  </div>
-                  <button className="btn-cobrar" onClick={() => cobrar(p)}>
-                    ✓ Cobrado
-                  </button>
-                </div>
+            {pendientes.length === 0 ? (
+              <div className="empty">
+                <div className="empty-icon">✅</div>Todos al corriente
               </div>
-            ))
-          )}
+            ) : (
+              pendientes.map((p) => (
+                <div key={p.id} className="pago-row">
+                  <div>
+                    <div className="pago-nombre">{p.alumno_nombre}</div>
+                    <div className="pago-paquete">{p.paquete}</div>
+                    <span
+                      className={`pago-tag tag-${p.estado}`}
+                      style={{ display: "inline-block", marginTop: 6 }}
+                    >
+                      {p.estado}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <div className="pago-monto">
+                      ${parseFloat(p.monto).toLocaleString()}
+                    </div>
+                    <button className="btn-cobrar" onClick={() => cobrar(p)}>
+                      ✓ Cobrado
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="card-label">Últimos 10 pagos registrados</div>
+
+            {ultimosPagos.length === 0 ? (
+              <div className="empty">No hay pagos registrados</div>
+            ) : (
+              ultimosPagos.map((p) => (
+                <div key={p.id} className="pago-row">
+                  <div>
+                    <div className="pago-nombre">{p.alumno_nombre}</div>
+                    <div className="pago-paquete">
+                      {p.paquete || p.tipo || "Pago"}
+                    </div>
+                    <div style={{ fontSize: 12, opacity: 0.65, marginTop: 3 }}>
+                      {new Date(p.fecha_pago).toLocaleDateString("es-MX")}
+                      {p.metodo_pago ? ` · ${p.metodo_pago}` : ""}
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="pago-monto">
+                      ${parseFloat(p.monto || 0).toLocaleString("es-MX")}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       ) : (
         <>
@@ -3527,6 +3561,7 @@ function ViewMiEspacio({ usuario, showToast }) {
   const [asistencias, setAsistencias] = useState([]);
   const [feedback, setFeedback] = useState([]);
   const [perfil, setPerfil] = useState(null);
+  const [paquetesHoras, setPaquetesHoras] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showComprobante, setShowComprobante] = useState(false);
   const [showFicha, setShowFicha] = useState(false);
@@ -3563,6 +3598,14 @@ function ViewMiEspacio({ usuario, showToast }) {
             Api.listarFeedback(usuario.id)
               .then(setFeedback)
               .catch(() => {});
+
+            Api.obtenerAlumno(usuario.id)
+              .then((detalleAlumno) => {
+                setPaquetesHoras(detalleAlumno?.paquetes_horas || []);
+              })
+              .catch(() => {
+                setPaquetesHoras([]);
+              });
           }
         },
       )
@@ -3952,6 +3995,38 @@ function ViewMiEspacio({ usuario, showToast }) {
           <div className="card-label" style={{ marginBottom: 0 }}>
             Mis pagos
           </div>
+          {paquetesHoras.length > 0 && (
+            <div
+              style={{
+                width: "100%",
+                marginBottom: 12,
+                padding: "10px 12px",
+                border: "1px solid var(--gold)",
+                borderRadius: 8,
+                background: "rgba(255, 193, 7, 0.06)",
+              }}
+            >
+              <div
+                style={{
+                  fontSize: 10,
+                  color: "var(--gr)",
+                  textTransform: "uppercase",
+                  marginBottom: 4,
+                }}
+              >
+                Paquete de horas
+              </div>
+
+              <div style={{ fontSize: 15, fontWeight: 700 }}>
+                🎾{" "}
+                {paquetesHoras.reduce(
+                  (total, ph) => total + Number(ph.horas_disponibles || 0),
+                  0,
+                )}{" "}
+                horas disponibles
+              </div>
+            </div>
+          )}
           {pagoPendiente && (
             <button
               onClick={() => setShowComprobante(true)}

@@ -275,6 +275,23 @@ const registrarAsistencia = async (req, res) => {
         inscripcionResult.rows.length > 0 ? inscripcionResult.rows[0].id : null;
 
       // Registrar o actualizar asistencia
+
+      const asistenciaAnteriorResult = await query(
+        `
+  SELECT estado
+  FROM asistencia
+  WHERE sesion_id = $1
+    AND alumno_id = $2
+  LIMIT 1
+  `,
+        [sesionId, a.alumno_id],
+      );
+
+      const estadoAnterior =
+        asistenciaAnteriorResult.rows.length > 0
+          ? asistenciaAnteriorResult.rows[0].estado
+          : null;
+
       const asistenciaResult = await query(
         `
         INSERT INTO asistencia (
@@ -301,8 +318,113 @@ const registrarAsistencia = async (req, res) => {
       );
 
       const asistencia = asistenciaResult.rows[0];
+      // =============================================
+      // PAQUETE DE HORAS: DESCONTAR / DEVOLVER ASISTENCIA
+      // =============================================
 
+      if (estadoAnterior !== "asistio" && asistencia.estado === "asistio") {
+        const paqueteHorasResult = await query(
+          `
+    SELECT id, horas_disponibles
+    FROM paquetes_horas
+    WHERE alumno_id = $1
+      AND horas_disponibles > 0
+      AND estado = 'activo'
+    ORDER BY fecha_compra ASC
+    LIMIT 1
+    FOR UPDATE
+    `,
+          [a.alumno_id],
+        );
+
+        if (paqueteHorasResult.rows.length > 0) {
+          const consumoExistenteResult = await query(
+            `
+  SELECT id, estado
+  FROM consumos_horas
+  WHERE asistencia_id = $1
+  LIMIT 1
+  `,
+            [asistencia.id],
+          );
+
+          const yaConsumida =
+            consumoExistenteResult.rows.length > 0 &&
+            consumoExistenteResult.rows[0].estado === "consumido";
+
+          if (!yaConsumida) {
+            await query(
+              `
+      UPDATE paquetes_horas
+      SET horas_disponibles = horas_disponibles - 1
+      WHERE id = $1
+      `,
+              [paqueteHorasResult.rows[0].id],
+            );
+            await query(
+              `
+  INSERT INTO consumos_horas (
+    paquete_horas_id,
+    asistencia_id,
+    alumno_id,
+    horas,
+    estado
+  )
+  VALUES ($1, $2, $3, 1, 'consumido')
+  ON CONFLICT (asistencia_id)
+  DO UPDATE SET
+    paquete_horas_id = EXCLUDED.paquete_horas_id,
+    alumno_id = EXCLUDED.alumno_id,
+    horas = 1,
+    estado = 'consumido',
+    updated_at = NOW()
+  `,
+              [paqueteHorasResult.rows[0].id, asistencia.id, a.alumno_id],
+            );
+          }
+        }
+      }
       // =====================================================
+      // ==========================================
+      // PAQUETE DE HORAS: DEVOLVER HORA
+      // ==========================================
+
+      if (estadoAnterior === "asistio" && asistencia.estado !== "asistio") {
+        const consumoResult = await query(
+          `
+    SELECT id, paquete_horas_id, horas, estado
+    FROM consumos_horas
+    WHERE asistencia_id = $1
+      AND estado = 'consumido'
+    LIMIT 1
+    FOR UPDATE
+    `,
+          [asistencia.id],
+        );
+
+        if (consumoResult.rows.length > 0) {
+          const consumo = consumoResult.rows[0];
+
+          await query(
+            `
+      UPDATE paquetes_horas
+      SET horas_disponibles = horas_disponibles + $1
+      WHERE id = $2
+      `,
+            [consumo.horas, consumo.paquete_horas_id],
+          );
+
+          await query(
+            `
+      UPDATE consumos_horas
+      SET estado = 'devuelto',
+          updated_at = NOW()
+      WHERE id = $1
+      `,
+            [consumo.id],
+          );
+        }
+      }
       // FALTA EN GRUPO = CREA REPOSICIÓN
       // =====================================================
 
