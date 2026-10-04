@@ -119,6 +119,7 @@ function EditarAlumnoModal({
         nombre: form.nombre.trim(),
         apellido: form.apellido.trim(),
         telefono: form.telefono.trim(),
+        email: form.email.trim().toLowerCase(),
         nivel_id: form.nivel_id ? parseInt(form.nivel_id, 10) : null,
         tipo_clase: form.tipo_clase,
         notas: form.notas,
@@ -186,11 +187,12 @@ function EditarAlumnoModal({
 
         <div className="field">
           <label>Email</label>
-          <input value={form.email} disabled />
-          <div style={{ fontSize: 11, color: "var(--gr)", marginTop: 4 }}>
-            El cambio de email lo habilitaremos en el siguiente ajuste de
-            backend.
-          </div>
+          <input
+            type="email"
+            value={form.email}
+            onChange={(e) => set("email", e.target.value)}
+            placeholder="correo@email.com"
+          />
         </div>
 
         <div className="field">

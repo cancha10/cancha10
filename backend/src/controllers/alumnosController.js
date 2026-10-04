@@ -136,12 +136,31 @@ COALESCE(
 const actualizarAlumno = async (req, res) => {
   try {
     const { id } = req.params;
-    const { nombre, apellido, telefono, nivel_id, tipo_clase, notas } =
+    const { nombre, apellido, telefono, email, nivel_id, tipo_clase, notas } =
       req.body;
-    if (nombre || apellido || telefono) {
+    if (email) {
+      const emailNormalizado = email.toLowerCase().trim();
+
+      const existente = await query(
+        "SELECT id FROM usuarios WHERE LOWER(email)=LOWER($1) AND id<>$2",
+        [emailNormalizado, id],
+      );
+
+      if (existente.rows.length > 0) {
+        return res.status(409).json({
+          error: "Este correo ya está registrado por otro usuario",
+        });
+      }
+    }
+    if (nombre || apellido || telefono || email) {
       await query(
-        "UPDATE usuarios SET nombre=COALESCE($1,nombre), apellido=COALESCE($2,apellido), telefono=COALESCE($3,telefono) WHERE id=$4",
-        [nombre, apellido, telefono, id],
+        `UPDATE usuarios
+   SET nombre=COALESCE($1,nombre),
+       apellido=COALESCE($2,apellido),
+       telefono=COALESCE($3,telefono),
+       email=COALESCE($4,email)
+   WHERE id=$5`,
+        [nombre, apellido, telefono, email, id],
       );
     }
     if (nivel_id || tipo_clase || notas !== undefined) {
