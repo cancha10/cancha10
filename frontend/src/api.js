@@ -221,6 +221,7 @@ const Api = {
     apiCall(
       `/gastos/resumen-financiero${mes && anio ? `?mes=${mes}&anio=${anio}` : ""}`,
     ),
+  reporteFinanciero: () => apiCall("/pagos/reporte-financiero"),
 };
 
 export default Api;

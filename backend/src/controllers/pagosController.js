@@ -72,11 +72,37 @@ const registrar = async (req, res) => {
 const pendientes = async (req, res) => {
   try {
     const result = await query(
-      `SELECT p.*, u.nombre||' '||u.apellido AS alumno_nombre, pa.nombre AS paquete
-       FROM pagos p JOIN alumnos a ON a.id = p.alumno_id JOIN usuarios u ON u.id = a.usuario_id
-       LEFT JOIN inscripciones i ON i.id = p.inscripcion_id LEFT JOIN paquetes pa ON pa.id = i.paquete_id
-       WHERE p.estado IN ('pendiente','vencido') ORDER BY p.created_at DESC`,
+      `
+      SELECT
+        i.id AS inscripcion_id,
+        a.id AS alumno_id,
+        u.nombre || ' ' || u.apellido AS alumno_nombre,
+        pa.nombre AS paquete,
+        i.dia_pago,
+        COALESCE(i.precio_mensual_personalizado, pa.precio_mensual, 0) AS monto,
+        CASE
+          WHEN EXTRACT(DAY FROM CURRENT_DATE) > i.dia_pago
+            THEN 'vencido'
+          ELSE 'pendiente'
+        END AS estado
+      FROM inscripciones i
+      JOIN alumnos a ON a.id = i.alumno_id
+      JOIN usuarios u ON u.id = a.usuario_id
+      LEFT JOIN paquetes pa ON pa.id = i.paquete_id
+      WHERE i.estado = 'activa'
+        AND i.dia_pago IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1
+          FROM pagos p
+          WHERE p.inscripcion_id = i.id
+            AND p.estado = 'pagado'
+            AND EXTRACT(MONTH FROM p.fecha_pago) = EXTRACT(MONTH FROM CURRENT_DATE)
+            AND EXTRACT(YEAR FROM p.fecha_pago) = EXTRACT(YEAR FROM CURRENT_DATE)
+        )
+      ORDER BY i.dia_pago ASC, alumno_nombre ASC
+      `,
     );
+
     res.json(result.rows);
   } catch (err) {
     console.error("Error listando pendientes:", err);
@@ -233,7 +259,64 @@ const subirComprobante = async (req, res) => {
     res.status(500).json({ error: "Error al subir el comprobante" });
   }
 };
+const reporteFinanciero = async (req, res) => {
+  try {
+    const result = await query(`
+      SELECT
+        DATE_TRUNC('month', p.fecha_pago) AS mes,
 
+        COALESCE(
+          SUM(p.monto) FILTER (
+            WHERE p.estado = 'pagado'
+          ), 0
+        ) AS ingresos_totales,
+
+        COALESCE(
+          SUM(p.monto) FILTER (
+            WHERE p.estado = 'pagado'
+            AND g.tipo = 'grupal'
+          ), 0
+        ) AS ingresos_grupales,
+
+        COALESCE(
+          SUM(p.monto) FILTER (
+            WHERE p.estado = 'pagado'
+            AND g.tipo = 'particular'
+          ), 0
+        ) AS ingresos_particulares,
+
+        COALESCE(
+          SUM(p.monto) FILTER (
+            WHERE p.estado = 'pagado'
+            AND g.tipo IS NULL
+          ), 0
+        ) AS otros
+
+      FROM pagos p
+
+      LEFT JOIN inscripciones i
+        ON i.id = p.inscripcion_id
+
+      LEFT JOIN grupos g
+        ON g.id = i.grupo_id
+
+      WHERE p.fecha_pago IS NOT NULL
+
+      GROUP BY DATE_TRUNC('month', p.fecha_pago)
+      ORDER BY mes DESC
+      LIMIT 12
+    `);
+
+    res.json({
+      meses: result.rows,
+    });
+  } catch (err) {
+    console.error("Error generando reporte financiero:", err);
+    res.status(500).json({
+      error: "Error generando reporte financiero",
+    });
+  }
+};
 module.exports = {
   listar,
   registrar,
@@ -243,4 +326,5 @@ module.exports = {
   editarPago,
   eliminarPago,
   subirComprobante,
+  reporteFinanciero,
 };

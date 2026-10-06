@@ -199,6 +199,12 @@ router.delete(
 );
 
 // Pagos
+router.get(
+  "/pagos/reporte-financiero",
+  authMiddleware,
+  soloAdmin,
+  pagosCtrl.reporteFinanciero,
+);
 router.get("/pagos", authMiddleware, soloAdmin, pagosCtrl.listar);
 router.post("/pagos", authMiddleware, soloAdmin, pagosCtrl.registrar);
 router.get(

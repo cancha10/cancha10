@@ -2876,8 +2876,10 @@ function FormGasto({ onClose, onGuardar }) {
 
 function ViewPagos({ showToast }) {
   const [pagos, setPagos] = useState([]);
+  const [pagosPendientes, setPagosPendientes] = useState([]);
   const [gastos, setGastos] = useState([]);
   const [resumen, setResumen] = useState(null);
+  const [reporte, setReporte] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [tab, setTab] = useState("cobranza"); // 'cobranza' | 'gastos'
@@ -2888,14 +2890,21 @@ function ViewPagos({ showToast }) {
     setError("");
     Promise.all([
       Api.listarPagos(),
+      Api.pagosPendientes(),
       Api.listarGastos(),
       Api.resumenFinanciero(),
+      Api.reporteFinanciero(),
     ])
-      .then(([dataPagos, dataGastos, dataResumen]) => {
-        setPagos(dataPagos?.pagos || []);
-        setGastos(dataGastos?.gastos || []);
-        setResumen(dataResumen);
-      })
+      .then(
+        ([dataPagos, dataPendientes, dataGastos, dataResumen, dataReporte]) => {
+          setPagos(dataPagos?.pagos || []);
+          setPagosPendientes(dataPendientes || []);
+          setGastos(dataGastos?.gastos || []);
+          setResumen(dataResumen);
+          setReporte(dataReporte);
+          console.log("REPORTE FINANCIERO:", dataReporte);
+        },
+      )
       .catch((e) => setError(e.message || "No se pudieron cargar los datos"))
       .finally(() => setLoading(false));
   };
@@ -2907,6 +2916,10 @@ function ViewPagos({ showToast }) {
   const pendientes = pagos.filter((p) => p.estado !== "pagado");
   const vencidos = pendientes.filter((p) => p.estado === "vencido").length;
   const alCorriente = pagos.filter((p) => p.estado === "pagado").length;
+  const totalPorCobrar = pagosPendientes.reduce(
+    (total, p) => total + Number(p.monto || 0),
+    0,
+  );
   const ultimosPagos = pagos
     .filter((p) => p.estado === "pagado" && p.fecha_pago)
     .sort((a, b) => new Date(b.fecha_pago) - new Date(a.fecha_pago))
@@ -2974,7 +2987,186 @@ function ViewPagos({ showToast }) {
           </div>
         </div>
       )}
+      {reporte?.meses?.length > 0 &&
+        (() => {
+          const mes = reporte.meses[0];
 
+          const grupales = Number(mes.ingresos_grupales || 0);
+          const particulares = Number(mes.ingresos_particulares || 0);
+          const otros = Number(mes.otros || 0);
+          const total = Number(mes.ingresos_totales || 0);
+
+          const porcentaje = (valor) =>
+            total > 0 ? ((valor / total) * 100).toFixed(1) : "0.0";
+
+          return (
+            <div className="card" style={{ marginBottom: 14 }}>
+              <div className="card-label">Ingresos del mes</div>
+
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "repeat(3, 1fr)",
+                  gap: 12,
+                  marginTop: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontWeight: 700 }}>Clases grupales</div>
+                  <div style={{ fontSize: 18 }}>
+                    ${grupales.toLocaleString("es-MX")}
+                  </div>
+                  <div style={{ opacity: 0.6 }}>{porcentaje(grupales)}%</div>
+                </div>
+
+                <div>
+                  <div style={{ fontWeight: 700 }}>Clases particulares</div>
+                  <div style={{ fontSize: 18 }}>
+                    ${particulares.toLocaleString("es-MX")}
+                  </div>
+                  <div style={{ opacity: 0.6 }}>
+                    {porcentaje(particulares)}%
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ fontWeight: 700 }}>Otros</div>
+                  <div style={{ fontSize: 18 }}>
+                    ${otros.toLocaleString("es-MX")}
+                  </div>
+                  <div style={{ opacity: 0.6 }}>{porcentaje(otros)}%</div>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  marginTop: 16,
+                  paddingTop: 12,
+                  borderTop: "1px solid #2a2a2a",
+                  fontWeight: 700,
+                }}
+              >
+                Total del mes: ${total.toLocaleString("es-MX")}
+              </div>
+            </div>
+          );
+        })()}
+      {reporte?.meses?.length > 0 && (
+        <div className="card" style={{ marginBottom: 14 }}>
+          <div className="card-label">Evolución mensual de ingresos</div>
+
+          <div style={{ overflowX: "auto", marginTop: 10 }}>
+            <table
+              style={{
+                width: "100%",
+                borderCollapse: "collapse",
+                fontSize: 13,
+              }}
+            >
+              <thead>
+                <tr style={{ opacity: 0.65, textAlign: "left" }}>
+                  <th style={{ padding: "8px 6px" }}>Mes</th>
+                  <th style={{ padding: "8px 6px" }}>Grupales</th>
+                  <th style={{ padding: "8px 6px" }}>Particulares</th>
+                  <th style={{ padding: "8px 6px" }}>Otros</th>
+                  <th style={{ padding: "8px 6px" }}>Total</th>
+                  <th style={{ padding: "8px 6px" }}>Variación</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {[...reporte.meses].reverse().map((m) => {
+                  const fecha = new Date(m.mes);
+                  const nombreMes = fecha.toLocaleDateString("es-MX", {
+                    month: "long",
+                    year: "numeric",
+                    timeZone: "UTC",
+                  });
+                  const mesesOrdenados = [...reporte.meses].reverse();
+                  const indiceActual = mesesOrdenados.findIndex(
+                    (x) => x.mes === m.mes,
+                  );
+                  const mesAnterior =
+                    indiceActual > 0 ? mesesOrdenados[indiceActual - 1] : null;
+
+                  const totalActual = Number(m.ingresos_totales || 0);
+                  const totalAnterior = mesAnterior
+                    ? Number(mesAnterior.ingresos_totales || 0)
+                    : 0;
+
+                  const variacion =
+                    mesAnterior && totalAnterior > 0
+                      ? ((totalActual - totalAnterior) / totalAnterior) * 100
+                      : null;
+                  const hoy = new Date();
+                  const fechaMes = new Date(m.mes);
+
+                  const esMesActual =
+                    fechaMes.getUTCFullYear() === hoy.getFullYear() &&
+                    fechaMes.getUTCMonth() === hoy.getMonth();
+                  return (
+                    <tr key={m.mes} style={{ borderTop: "1px solid #2a2a2a" }}>
+                      <td
+                        style={{
+                          padding: "9px 6px",
+                          textTransform: "capitalize",
+                          fontWeight: 700,
+                        }}
+                      >
+                        {nombreMes}
+                      </td>
+
+                      <td style={{ padding: "9px 6px" }}>
+                        $
+                        {Number(m.ingresos_grupales || 0).toLocaleString(
+                          "es-MX",
+                        )}
+                      </td>
+
+                      <td style={{ padding: "9px 6px" }}>
+                        $
+                        {Number(m.ingresos_particulares || 0).toLocaleString(
+                          "es-MX",
+                        )}
+                      </td>
+
+                      <td style={{ padding: "9px 6px" }}>
+                        ${Number(m.otros || 0).toLocaleString("es-MX")}
+                      </td>
+
+                      <td style={{ padding: "9px 6px", fontWeight: 700 }}>
+                        $
+                        {Number(m.ingresos_totales || 0).toLocaleString(
+                          "es-MX",
+                        )}
+                      </td>
+                      <td
+                        style={{
+                          padding: "9px 6px",
+                          fontWeight: 700,
+                          color: esMesActual
+                            ? "var(--gold)"
+                            : variacion === null
+                              ? "var(--gr)"
+                              : variacion >= 0
+                                ? "#35c759"
+                                : "#ff4d4f",
+                        }}
+                      >
+                        {esMesActual
+                          ? "EN CURSO"
+                          : variacion === null
+                            ? "—"
+                            : `${variacion >= 0 ? "+" : ""}${variacion.toFixed(1)}%`}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
       <div
         className="toggle-row"
         style={{ display: "flex", gap: 8, marginBottom: 14 }}
@@ -3025,39 +3217,6 @@ function ViewPagos({ showToast }) {
       ) : tab === "cobranza" ? (
         <div>
           <div className="card">
-            <div className="card-label">
-              Por cobrar ({vencidos} vencidos · {alCorriente} al corriente)
-            </div>
-            {pendientes.length === 0 ? (
-              <div className="empty">
-                <div className="empty-icon">✅</div>Todos al corriente
-              </div>
-            ) : (
-              pendientes.map((p) => (
-                <div key={p.id} className="pago-row">
-                  <div>
-                    <div className="pago-nombre">{p.alumno_nombre}</div>
-                    <div className="pago-paquete">{p.paquete}</div>
-                    <span
-                      className={`pago-tag tag-${p.estado}`}
-                      style={{ display: "inline-block", marginTop: 6 }}
-                    >
-                      {p.estado}
-                    </span>
-                  </div>
-                  <div className="text-right">
-                    <div className="pago-monto">
-                      ${parseFloat(p.monto).toLocaleString()}
-                    </div>
-                    <button className="btn-cobrar" onClick={() => cobrar(p)}>
-                      ✓ Cobrado
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-          <div className="card" style={{ marginTop: 16 }}>
             <div className="card-label">Últimos 10 pagos registrados</div>
 
             {ultimosPagos.length === 0 ? (
@@ -3073,6 +3232,35 @@ function ViewPagos({ showToast }) {
                     <div style={{ fontSize: 12, opacity: 0.65, marginTop: 3 }}>
                       {new Date(p.fecha_pago).toLocaleDateString("es-MX")}
                       {p.metodo_pago ? ` · ${p.metodo_pago}` : ""}
+                    </div>
+                  </div>
+
+                  <div className="text-right">
+                    <div className="pago-monto">
+                      ${parseFloat(p.monto || 0).toLocaleString("es-MX")}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+          <div className="card" style={{ marginTop: 14 }}>
+            <div className="card-label">Por cobrar</div>
+
+            {pagosPendientes.length === 0 ? (
+              <div className="empty">Todos al corriente</div>
+            ) : (
+              pagosPendientes.map((p) => (
+                <div key={p.inscripcion_id} className="pago-row">
+                  <div>
+                    <div className="pago-nombre">{p.alumno_nombre}</div>
+
+                    <div className="pago-paquete">
+                      {p.paquete || "Mensualidad"}
+                    </div>
+
+                    <div style={{ fontSize: 12, opacity: 0.65, marginTop: 3 }}>
+                      Día de pago: {p.dia_pago} · {p.estado}
                     </div>
                   </div>
 
