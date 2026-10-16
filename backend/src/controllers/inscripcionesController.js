@@ -23,6 +23,7 @@ const crear = async (req, res) => {
       paquete_id,
       fecha_inicio,
       dia_pago,
+      modalidad_pago = "mensualidad",
       clase_ids = [],
       precio_mensual_personalizado = null,
       motivo_precio_personalizado = null,
@@ -42,10 +43,11 @@ const crear = async (req, res) => {
       paquete_id,
       fecha_inicio,
       dia_pago,
+      modalidad_pago,
       precio_mensual_personalizado,
       motivo_precio_personalizado
     )
-   VALUES ($1,$2,$3,$4,$5,$6,$7)
+   VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
    RETURNING *`,
       [
         alumno_id,
@@ -53,6 +55,7 @@ const crear = async (req, res) => {
         paquete_id || null,
         fecha_inicio || new Date().toISOString().split("T")[0],
         dia_pago || null,
+        modalidad_pago,
         precio_mensual_personalizado !== null &&
         precio_mensual_personalizado !== ""
           ? Number(precio_mensual_personalizado)

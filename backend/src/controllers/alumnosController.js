@@ -90,9 +90,14 @@ COALESCE(
     let dias = null;
 
     if (inscripciones.rows.length) {
-      const ultimoPago = historial.rows.find(
-        (pago) => pago.estado === "pagado" && pago.periodo_fin,
-      );
+      const ultimoPago = historial.rows
+        .filter(
+          (pago) =>
+            pago.estado === "pagado" &&
+            pago.tipo === "mensualidad" &&
+            pago.periodo_fin,
+        )
+        .sort((a, b) => new Date(b.periodo_fin) - new Date(a.periodo_fin))[0];
 
       if (!ultimoPago) {
         estadoPago = "sin_pago";

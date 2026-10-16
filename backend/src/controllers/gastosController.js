@@ -1,4 +1,5 @@
 const { query } = require("../config/database");
+const { obtenerPendientes } = require("./pagosController");
 const CATEGORIAS = [
   "renta",
   "nomina",
@@ -76,20 +77,21 @@ const resumenFinanciero = async (req, res) => {
     console.log("ENTRE A RESUMEN FINANCIERO");
     const [ingr, porCobrar, gast] = await Promise.all([
       query(
+
         `SELECT COALESCE(SUM(monto),0) AS total FROM pagos WHERE estado='pagado' AND EXTRACT(MONTH FROM fecha_pago)=$1 AND EXTRACT(YEAR FROM fecha_pago)=$2`,
         [m, a],
       ),
-      query(
-        `SELECT COALESCE(SUM(monto),0) AS total FROM pagos WHERE estado IN ('pendiente','vencido') AND EXTRACT(MONTH FROM periodo_inicio)=$1 AND EXTRACT(YEAR FROM periodo_inicio)=$2`,
-        [m, a],
-      ),
+      obtenerPendientes(),
       query(
         `SELECT COALESCE(SUM(monto),0) AS total FROM gastos WHERE EXTRACT(MONTH FROM fecha)=$1 AND EXTRACT(YEAR FROM fecha)=$2`,
         [m, a],
       ),
     ]);
     const ingresos = parseFloat(ingr.rows[0].total);
-    const pendientes = parseFloat(porCobrar.rows[0].total);
+    const pendientes = porCobrar.reduce(
+  (total, item) => total + Number(item.monto || 0),
+  0
+);
     const gastos = parseFloat(gast.rows[0].total);
     res.json({
       mes: parseInt(m),

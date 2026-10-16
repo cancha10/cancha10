@@ -2156,6 +2156,7 @@ function FormNuevoAlumno({ onClose, onGuardar }) {
     tipo_clase: "grupal",
     grupo_id: "",
     paquete_id: null,
+    modalidad_pago: "mensualidad",
     dia_pago: 1,
   });
   const [paquetes, setPaquetes] = useState([]);
@@ -2213,7 +2214,11 @@ function FormNuevoAlumno({ onClose, onGuardar }) {
         nivel_id: form.nivel_id ? parseInt(form.nivel_id) : null,
         grupo_id: form.grupo_id ? parseInt(form.grupo_id) : null,
         paquete_id: parseInt(form.paquete_id),
-        dia_pago: form.dia_pago ? parseInt(form.dia_pago) : null,
+        modalidad_pago: form.modalidad_pago,
+        dia_pago:
+          form.modalidad_pago === "mensualidad" && form.dia_pago
+            ? parseInt(form.dia_pago)
+            : null,
       });
       onGuardar();
     } catch (e) {
@@ -2337,21 +2342,32 @@ function FormNuevoAlumno({ onClose, onGuardar }) {
             })}
           </select>
         </div>
-
         <div className="field">
-          <label>Día de pago (1-31)</label>
-          <input
-            type="number"
-            min="1"
-            max="31"
-            value={form.dia_pago}
-            onChange={(e) => set("dia_pago", parseInt(e.target.value) || 1)}
-            placeholder="Ej. 1, 15, 30"
-          />
-          <div style={{ fontSize: 11, color: "var(--gr)", marginTop: 4 }}>
-            El día del mes en que este alumno paga su mensualidad.
-          </div>
+          <label>Modalidad de pago</label>
+          <select
+            value={form.modalidad_pago}
+            onChange={(e) => set("modalidad_pago", e.target.value)}
+          >
+            <option value="mensualidad">Mensualidad</option>
+            <option value="por_clase">Por clase</option>
+          </select>
         </div>
+        {form.modalidad_pago === "mensualidad" && (
+          <div className="field">
+            <label>Día de pago (1–31)</label>
+            <input
+              type="number"
+              min="1"
+              max="31"
+              value={form.dia_pago}
+              onChange={(e) => set("dia_pago", parseInt(e.target.value) || 1)}
+              placeholder="Ej. 5, 15, 30"
+            />
+            <div style={{ fontSize: 11, color: "var(--gr)", marginTop: 4 }}>
+              El día del mes en que este alumno paga su mensualidad.
+            </div>
+          </div>
+        )}
 
         <button className="btn-save" onClick={guardar} disabled={guardando}>
           {guardando ? "Guardando..." : "Guardar alumno"}

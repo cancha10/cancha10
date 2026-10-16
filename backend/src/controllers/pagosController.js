@@ -69,41 +69,105 @@ const registrar = async (req, res) => {
   }
 };
 
+const obtenerPendientes = async () => {
+  const result = await query(`
+      WITH cargos_nuevos AS (
+        SELECT
+          ci.inscripcion_id,
+          ct.alumno_id,
+          u.nombre || ' ' || u.apellido AS alumno_nombre,
+          pa.nombre AS paquete,
+          ct.dia_pago,
+          GREATEST(
+            c.monto - COALESCE(abonos.total_abonado, 0),
+            0
+          ) AS monto,
+          CASE
+            WHEN c.fecha_vencimiento < CURRENT_DATE
+              THEN 'vencido'
+            ELSE 'pendiente'
+          END AS estado
+        FROM cargos c
+        JOIN contratos ct ON ct.id = c.contrato_id
+        JOIN alumnos a ON a.id = ct.alumno_id
+        JOIN usuarios u ON u.id = a.usuario_id
+        LEFT JOIN paquetes pa ON pa.id = ct.paquete_id
+       LEFT JOIN LATERAL (
+  SELECT inscripcion_id
+  FROM contrato_inscripciones
+  WHERE contrato_id = ct.id
+  ORDER BY inscripcion_id
+  LIMIT 1
+) ci ON TRUE
+        LEFT JOIN LATERAL (
+          SELECT SUM(cp.monto_aplicado) AS total_abonado
+          FROM cargo_pagos cp
+          WHERE cp.cargo_id = c.id
+        ) abonos ON TRUE
+        WHERE ct.estado = 'activo'
+          AND c.estado <> 'cancelado'
+          AND c.monto > COALESCE(abonos.total_abonado, 0)
+      ),
+      pendientes_anteriores AS (
+        SELECT
+          i.id AS inscripcion_id,
+          a.id AS alumno_id,
+          u.nombre || ' ' || u.apellido AS alumno_nombre,
+          pa.nombre AS paquete,
+          i.dia_pago,
+          COALESCE(
+            i.precio_mensual_personalizado,
+            pa.precio_mensual,
+            0
+          ) AS monto,
+          CASE
+            WHEN EXTRACT(DAY FROM CURRENT_DATE) > i.dia_pago
+              THEN 'vencido'
+            ELSE 'pendiente'
+          END AS estado
+        FROM inscripciones i
+        JOIN alumnos a ON a.id = i.alumno_id
+        JOIN usuarios u ON u.id = a.usuario_id
+        LEFT JOIN paquetes pa ON pa.id = i.paquete_id
+        WHERE i.estado = 'activa'
+          AND COALESCE(i.modalidad_pago, 'mensualidad') = 'mensualidad'
+          AND i.dia_pago IS NOT NULL
+          AND COALESCE(
+  i.precio_mensual_personalizado,
+  pa.precio_mensual,
+  0
+) > 0
+          AND NOT EXISTS (
+            SELECT 1
+            FROM contratos ct
+            WHERE ct.alumno_id = i.alumno_id
+              AND ct.estado = 'activo'
+          )
+          AND NOT EXISTS (
+            SELECT 1
+            FROM pagos p
+            JOIN inscripciones ip ON ip.id = p.inscripcion_id
+            JOIN paquetes pp ON pp.id = ip.paquete_id
+            WHERE p.alumno_id = i.alumno_id
+              AND p.estado = 'pagado'
+              AND pp.tipo = 'grupal'
+              AND p.periodo_inicio <= CURRENT_DATE
+              AND p.periodo_fin >= CURRENT_DATE
+          )
+      )
+      SELECT * FROM cargos_nuevos
+      UNION ALL
+      SELECT * FROM pendientes_anteriores
+      ORDER BY dia_pago ASC NULLS LAST, alumno_nombre ASC
+       `);
+
+  return result.rows;
+};
+
 const pendientes = async (req, res) => {
   try {
-    const result = await query(
-      `
-      SELECT
-        i.id AS inscripcion_id,
-        a.id AS alumno_id,
-        u.nombre || ' ' || u.apellido AS alumno_nombre,
-        pa.nombre AS paquete,
-        i.dia_pago,
-        COALESCE(i.precio_mensual_personalizado, pa.precio_mensual, 0) AS monto,
-        CASE
-          WHEN EXTRACT(DAY FROM CURRENT_DATE) > i.dia_pago
-            THEN 'vencido'
-          ELSE 'pendiente'
-        END AS estado
-      FROM inscripciones i
-      JOIN alumnos a ON a.id = i.alumno_id
-      JOIN usuarios u ON u.id = a.usuario_id
-      LEFT JOIN paquetes pa ON pa.id = i.paquete_id
-      WHERE i.estado = 'activa'
-        AND i.dia_pago IS NOT NULL
-        AND NOT EXISTS (
-          SELECT 1
-          FROM pagos p
-          WHERE p.inscripcion_id = i.id
-            AND p.estado = 'pagado'
-            AND EXTRACT(MONTH FROM p.fecha_pago) = EXTRACT(MONTH FROM CURRENT_DATE)
-            AND EXTRACT(YEAR FROM p.fecha_pago) = EXTRACT(YEAR FROM CURRENT_DATE)
-        )
-      ORDER BY i.dia_pago ASC, alumno_nombre ASC
-      `,
-    );
-
-    res.json(result.rows);
+    const rows = await obtenerPendientes();
+    res.json(rows);
   } catch (err) {
     console.error("Error listando pendientes:", err);
     res.status(500).json({ error: "Error del servidor" });
@@ -321,6 +385,7 @@ module.exports = {
   listar,
   registrar,
   pendientes,
+  obtenerPendientes,
   misPagos,
   actualizarEstado,
   editarPago,

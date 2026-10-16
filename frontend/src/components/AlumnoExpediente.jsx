@@ -626,6 +626,9 @@ export default function AlumnoExpediente({
     useState("");
   const [inscripcionEditando, setInscripcionEditando] = useState(null);
   const [claseIdsEditando, setClaseIdsEditando] = useState([]);
+  const [paqueteEditando, setPaqueteEditando] = useState("");
+  const [precioEditando, setPrecioEditando] = useState("");
+  const [motivoEditando, setMotivoEditando] = useState("");
   const [showFicha, setShowFicha] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
   const [showEditar, setShowEditar] = useState(false);
@@ -1117,7 +1120,17 @@ export default function AlumnoExpediente({
                           type="button"
                           onClick={() => {
                             setInscripcionEditando(inscripcion);
-
+                            setPaqueteEditando(
+                              String(inscripcion.paquete_id ?? ""),
+                            );
+                            setPrecioEditando(
+                              String(
+                                inscripcion.precio_mensual_personalizado ?? "",
+                              ),
+                            );
+                            setMotivoEditando(
+                              inscripcion.motivo_precio_personalizado ?? "",
+                            );
                             const clasesActuales = Array.isArray(
                               inscripcion.clase_ids,
                             )
@@ -1125,6 +1138,24 @@ export default function AlumnoExpediente({
                               : [];
 
                             setClaseIdsEditando(clasesActuales);
+
+                            setPaqueteSeleccionado(
+                              inscripcion.paquete_id != null
+                                ? String(inscripcion.paquete_id)
+                                : "",
+                            );
+
+                            setPrecioPersonalizado(
+                              inscripcion.precio_mensual_personalizado != null
+                                ? String(
+                                    inscripcion.precio_mensual_personalizado,
+                                  )
+                                : "",
+                            );
+
+                            setMotivoPrecioPersonalizado(
+                              inscripcion.motivo_precio_personalizado || "",
+                            );
                           }}
                           style={{
                             padding: "6px 9px",
@@ -2281,7 +2312,42 @@ export default function AlumnoExpediente({
               >
                 {inscripcionEditando.grupo || "Grupo"}
               </div>
+              <div className="field">
+                <label>Paquete contratado</label>
+                <select
+                  value={paqueteEditando}
+                  onChange={(e) => setPaqueteEditando(e.target.value)}
+                >
+                  <option value="">Seleccionar paquete</option>
+                  {paquetesDisponibles.map((paquete) => (
+                    <option key={paquete.id} value={paquete.id}>
+                      {paquete.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
+              <div className="field">
+                <label>Precio mensual personalizado ($)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={precioEditando}
+                  onChange={(e) => setPrecioEditando(e.target.value)}
+                  placeholder="Vacío = precio normal del paquete"
+                />
+              </div>
+
+              <div className="field">
+                <label>Motivo del precio personalizado</label>
+                <input
+                  type="text"
+                  value={motivoEditando}
+                  onChange={(e) => setMotivoEditando(e.target.value)}
+                  placeholder="Ej. Descuento especial"
+                />
+              </div>
               <div className="field">
                 <label>Clases asignadas</label>
 
@@ -2342,22 +2408,37 @@ export default function AlumnoExpediente({
                 style={{ width: "100%", marginTop: 12 }}
                 onClick={async () => {
                   try {
+                    // 1. Actualizar condiciones económicas de la inscripción
+                    await Api.actualizarInscripcion(inscripcionEditando.id, {
+                      paquete_id: paqueteEditando
+                        ? Number(paqueteEditando)
+                        : null,
+                      precio_mensual_personalizado:
+                        precioEditando !== "" ? Number(precioEditando) : null,
+                      motivo_precio_personalizado:
+                        motivoEditando.trim() || null,
+                    });
+
+                    // 2. Actualizar las clases asignadas
                     await Api.actualizarClasesInscripcion(
                       inscripcionEditando.id,
                       claseIdsEditando,
                     );
 
+                    // 3. Refrescar la información del alumno
                     await cargarDetalle();
                     onActualizar?.();
 
-                    showToast?.("Clases actualizadas correctamente ✓");
+                    showToast?.(
+                      "Paquete, precio y clases actualizados correctamente ✓",
+                    );
 
                     setInscripcionEditando(null);
                     setClaseIdsEditando([]);
                   } catch (e) {
                     alert(
                       e.message ||
-                        "No se pudieron actualizar las clases de la inscripción",
+                        "No se pudieron guardar los cambios de la inscripción",
                     );
                   }
                 }}
