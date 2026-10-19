@@ -77,7 +77,6 @@ const resumenFinanciero = async (req, res) => {
     console.log("ENTRE A RESUMEN FINANCIERO");
     const [ingr, porCobrar, gast] = await Promise.all([
       query(
-
         `SELECT COALESCE(SUM(monto),0) AS total FROM pagos WHERE estado='pagado' AND EXTRACT(MONTH FROM fecha_pago)=$1 AND EXTRACT(YEAR FROM fecha_pago)=$2`,
         [m, a],
       ),
@@ -89,15 +88,25 @@ const resumenFinanciero = async (req, res) => {
     ]);
     const ingresos = parseFloat(ingr.rows[0].total);
     const pendientes = porCobrar.reduce(
-  (total, item) => total + Number(item.monto || 0),
-  0
-);
+      (total, item) => total + Number(item.monto || 0),
+      0,
+    );
+
+    const carteraVencida = porCobrar
+      .filter((item) => item.estado === "vencido")
+      .reduce((total, item) => total + Number(item.monto || 0), 0);
+
+    const porVencer = porCobrar
+      .filter((item) => item.estado === "pendiente")
+      .reduce((total, item) => total + Number(item.monto || 0), 0);
     const gastos = parseFloat(gast.rows[0].total);
     res.json({
       mes: parseInt(m),
       anio: parseInt(a),
       ingresos,
       por_cobrar: pendientes,
+      cartera_vencida: carteraVencida,
+      por_vencer: porVencer,
       gastos,
       balance: ingresos - gastos,
     });

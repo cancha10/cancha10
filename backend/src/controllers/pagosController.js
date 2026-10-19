@@ -107,6 +107,10 @@ const obtenerPendientes = async () => {
         WHERE ct.estado = 'activo'
           AND c.estado <> 'cancelado'
           AND c.monto > COALESCE(abonos.total_abonado, 0)
+          AND c.fecha_vencimiento <=
+    (date_trunc('month', CURRENT_DATE)
+     + INTERVAL '1 month'
+     - INTERVAL '1 day')::date
       ),
       pendientes_anteriores AS (
         SELECT
@@ -143,17 +147,44 @@ const obtenerPendientes = async () => {
             WHERE ct.alumno_id = i.alumno_id
               AND ct.estado = 'activo'
           )
-          AND NOT EXISTS (
-            SELECT 1
-            FROM pagos p
-            JOIN inscripciones ip ON ip.id = p.inscripcion_id
-            JOIN paquetes pp ON pp.id = ip.paquete_id
-            WHERE p.alumno_id = i.alumno_id
-              AND p.estado = 'pagado'
-              AND pp.tipo = 'grupal'
-              AND p.periodo_inicio <= CURRENT_DATE
-              AND p.periodo_fin >= CURRENT_DATE
+         
+
+
+AND NOT EXISTS (
+  SELECT 1
+  FROM pagos p
+  WHERE p.alumno_id = i.alumno_id
+    AND p.estado = 'pagado'
+    AND p.periodo_inicio <= make_date(
+      EXTRACT(YEAR FROM CURRENT_DATE)::int,
+      EXTRACT(MONTH FROM CURRENT_DATE)::int,
+      LEAST(
+        i.dia_pago,
+        EXTRACT(
+          DAY FROM (
+            date_trunc('month', CURRENT_DATE)
+            + INTERVAL '1 month - 1 day'
           )
+        )::int
+      )
+    )
+    AND p.periodo_fin > make_date(
+      EXTRACT(YEAR FROM CURRENT_DATE)::int,
+      EXTRACT(MONTH FROM CURRENT_DATE)::int,
+      LEAST(
+        i.dia_pago,
+        EXTRACT(
+          DAY FROM (
+            date_trunc('month', CURRENT_DATE)
+            + INTERVAL '1 month - 1 day'
+          )
+        )::int
+      )
+    )
+)
+
+
+
       )
       SELECT * FROM cargos_nuevos
       UNION ALL

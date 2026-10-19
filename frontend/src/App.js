@@ -2983,9 +2983,29 @@ function ViewPagos({ showToast }) {
           </div>
           <div className="stat-box">
             <div className="stat-num gold">
-              ${resumen.por_cobrar.toLocaleString()}
+              ${(Number(resumen.por_cobrar) || 0).toLocaleString("es-MX")}
             </div>
+
             <div className="stat-lbl">Por cobrar</div>
+
+            <div
+              style={{
+                marginTop: "8px",
+                fontSize: "11px",
+                lineHeight: "1.6",
+                textAlign: "center",
+              }}
+            >
+              <div style={{ color: "#ff6b6b" }}>
+                Vencido: $
+                {Number(resumen.cartera_vencida || 0).toLocaleString("es-MX")}
+              </div>
+
+              <div style={{ color: "#cccccc" }}>
+                Por vencer: $
+                {Number(resumen.por_vencer || 0).toLocaleString("es-MX")}
+              </div>
+            </div>
           </div>
           <div className="stat-box">
             <div className="stat-num danger">
