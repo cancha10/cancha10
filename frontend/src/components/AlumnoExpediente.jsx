@@ -627,6 +627,7 @@ export default function AlumnoExpediente({
   const [inscripcionEditando, setInscripcionEditando] = useState(null);
   const [claseIdsEditando, setClaseIdsEditando] = useState([]);
   const [paqueteEditando, setPaqueteEditando] = useState("");
+  const [modalidadEditando, setModalidadEditando] = useState("mensualidad");
   const [precioEditando, setPrecioEditando] = useState("");
   const [motivoEditando, setMotivoEditando] = useState("");
   const [showFicha, setShowFicha] = useState(false);
@@ -1122,6 +1123,9 @@ export default function AlumnoExpediente({
                             setInscripcionEditando(inscripcion);
                             setPaqueteEditando(
                               String(inscripcion.paquete_id ?? ""),
+                            );
+                            setModalidadEditando(
+                              inscripcion.modalidad_pago || "mensualidad",
                             );
                             setPrecioEditando(
                               String(
@@ -2313,41 +2317,57 @@ export default function AlumnoExpediente({
                 {inscripcionEditando.grupo || "Grupo"}
               </div>
               <div className="field">
-                <label>Paquete contratado</label>
+                <label>Modalidad de pago</label>
                 <select
-                  value={paqueteEditando}
-                  onChange={(e) => setPaqueteEditando(e.target.value)}
+                  value={modalidadEditando}
+                  onChange={(e) => setModalidadEditando(e.target.value)}
                 >
-                  <option value="">Seleccionar paquete</option>
-                  {paquetesDisponibles.map((paquete) => (
-                    <option key={paquete.id} value={paquete.id}>
-                      {paquete.nombre}
-                    </option>
-                  ))}
+                  <option value="mensualidad">Mensualidad</option>
+                  <option value="por_clase">Por clase</option>
+                  <option value="prepago">Prepago</option>
                 </select>
               </div>
 
-              <div className="field">
-                <label>Precio mensual personalizado ($)</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={precioEditando}
-                  onChange={(e) => setPrecioEditando(e.target.value)}
-                  placeholder="Vacío = precio normal del paquete"
-                />
-              </div>
+              {modalidadEditando === "mensualidad" && (
+                <>
+                  <div className="field">
+                    <label>Paquete contratado</label>
+                    <select
+                      value={paqueteEditando}
+                      onChange={(e) => setPaqueteEditando(e.target.value)}
+                    >
+                      <option value="">Seleccionar paquete</option>
+                      {paquetesDisponibles.map((paquete) => (
+                        <option key={paquete.id} value={paquete.id}>
+                          {paquete.nombre}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
 
-              <div className="field">
-                <label>Motivo del precio personalizado</label>
-                <input
-                  type="text"
-                  value={motivoEditando}
-                  onChange={(e) => setMotivoEditando(e.target.value)}
-                  placeholder="Ej. Descuento especial"
-                />
-              </div>
+                  <div className="field">
+                    <label>Precio mensual personalizado ($)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      value={precioEditando}
+                      onChange={(e) => setPrecioEditando(e.target.value)}
+                      placeholder="Vacío = precio normal del paquete"
+                    />
+                  </div>
+
+                  <div className="field">
+                    <label>Motivo del precio personalizado</label>
+                    <input
+                      type="text"
+                      value={motivoEditando}
+                      onChange={(e) => setMotivoEditando(e.target.value)}
+                      placeholder="Ej. Descuento especial"
+                    />
+                  </div>
+                </>
+              )}
               <div className="field">
                 <label>Clases asignadas</label>
 
@@ -2410,6 +2430,7 @@ export default function AlumnoExpediente({
                   try {
                     // 1. Actualizar condiciones económicas de la inscripción
                     await Api.actualizarInscripcion(inscripcionEditando.id, {
+                      modalidad_pago: modalidadEditando,
                       paquete_id: paqueteEditando
                         ? Number(paqueteEditando)
                         : null,

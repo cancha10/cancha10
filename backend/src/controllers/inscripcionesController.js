@@ -287,6 +287,7 @@ const actualizar = async (req, res) => {
     const {
       grupo_id,
       paquete_id,
+      modalidad_pago,
       precio_mensual_personalizado,
       motivo_precio_personalizado,
     } = req.body;
@@ -318,12 +319,13 @@ const actualizar = async (req, res) => {
       `
       UPDATE inscripciones
       SET
-        grupo_id = COALESCE($1, grupo_id),
-        paquete_id = COALESCE($2, paquete_id),
-        precio_mensual_personalizado = $3,
-        motivo_precio_personalizado = $4
-      WHERE id = $5
-        AND estado = 'activa'
+  grupo_id = COALESCE($1, grupo_id),
+  paquete_id = COALESCE($2, paquete_id),
+  precio_mensual_personalizado = $3,
+  motivo_precio_personalizado = $4,
+  modalidad_pago = COALESCE($6, modalidad_pago)
+WHERE id = $5
+  AND estado = 'activa'
       RETURNING *
       `,
       [
@@ -332,6 +334,7 @@ const actualizar = async (req, res) => {
         precio,
         motivo_precio_personalizado || null,
         id,
+        modalidad_pago ?? null,
       ],
     );
 

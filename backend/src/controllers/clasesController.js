@@ -256,9 +256,11 @@ const registrarAsistencia = async (req, res) => {
       // Buscar la inscripción correspondiente al alumno y al grupo
       const inscripcionResult = await query(
         `
-        SELECT id
-        FROM inscripciones
-        WHERE alumno_id = $1
+       SELECT i.id, i.modalidad_pago, i.paquete_id,
+       i.precio_mensual_personalizado, p.precio_clase
+       FROM inscripciones i
+LEFT JOIN paquetes p ON p.id = i.paquete_id
+WHERE i.alumno_id = $1
           AND grupo_id = $2
           AND fecha_inicio <= $3::date
           AND (
@@ -273,7 +275,14 @@ const registrarAsistencia = async (req, res) => {
 
       const inscripcionId =
         inscripcionResult.rows.length > 0 ? inscripcionResult.rows[0].id : null;
-
+      const modalidadPago =
+        inscripcionResult.rows.length > 0
+          ? inscripcionResult.rows[0].modalidad_pago || "mensualidad"
+          : null;
+      const precioClase =
+        inscripcionResult.rows.length > 0
+          ? Number(inscripcionResult.rows[0].precio_clase || 0)
+          : 0;
       // Registrar o actualizar asistencia
 
       const asistenciaAnteriorResult = await query(
@@ -318,6 +327,40 @@ const registrarAsistencia = async (req, res) => {
       );
 
       const asistencia = asistenciaResult.rows[0];
+      // CARGOS POR CLASE: CANCELAR SI SE RETIRA LA ASISTENCIA
+      if (asistencia.estado !== "asistio") {
+        await query(
+          `
+    UPDATE cargos c
+    SET estado = 'cancelado'
+    WHERE c.asistencia_id = $1
+      AND c.estado = 'pendiente'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM cargo_pagos cp
+        WHERE cp.cargo_id = c.id
+      )
+    `,
+          [asistencia.id],
+        );
+      }
+      // REACTIVAR CARGO SI EL ALUMNO VUELVE A ASISTIR
+      if (estadoAnterior !== "asistio" && asistencia.estado === "asistio") {
+        await query(
+          `
+    UPDATE cargos
+    SET estado = 'pendiente'
+    WHERE asistencia_id = $1
+      AND estado = 'cancelado'
+      AND NOT EXISTS (
+        SELECT 1
+        FROM cargo_pagos cp
+        WHERE cp.cargo_id = cargos.id
+      )
+    `,
+          [asistencia.id],
+        );
+      }
       // =============================================
       // PAQUETE DE HORAS: DESCONTAR / DEVOLVER ASISTENCIA
       // =============================================
@@ -424,6 +467,64 @@ const registrarAsistencia = async (req, res) => {
             [consumo.id],
           );
         }
+      }
+      // COBRO AUTOMÁTICO POR CLASE
+      if (
+        modalidadPago === "por_clase" &&
+        asistencia.estado === "asistio" &&
+        inscripcionId &&
+        precioClase > 0
+      ) {
+        const contratoResult = await query(
+          `
+  SELECT ct.id
+  FROM contratos ct
+  JOIN contrato_inscripciones ci
+    ON ci.contrato_id = ct.id
+  WHERE ci.inscripcion_id = $1
+    AND ct.estado = 'activo'
+    AND ct.modalidad_pago = 'por_clase'
+  LIMIT 1
+  `,
+          [inscripcionId],
+        );
+
+        if (!contratoResult.rows.length) {
+          throw new Error(
+            `No existe contrato activo por clase para la inscripción ${inscripcionId}`,
+          );
+        }
+
+        const contratoId = contratoResult.rows[0].id;
+        await query(
+          `
+  INSERT INTO cargos (
+    contrato_id,
+    asistencia_id,
+    concepto,
+    periodo_inicio,
+    periodo_fin,
+    fecha_vencimiento,
+    monto,
+    estado
+  )
+  SELECT
+    $1,
+    $2,
+    'Clase por asistencia',
+    $3::date,
+    $3::date,
+    $3::date,
+    $4,
+    'pendiente'
+  WHERE NOT EXISTS (
+    SELECT 1
+    FROM cargos
+    WHERE asistencia_id = $2
+  )
+  `,
+          [contratoId, asistencia.id, sesion.fecha, precioClase],
+        );
       }
       // FALTA EN GRUPO = CREA REPOSICIÓN
       // =====================================================
