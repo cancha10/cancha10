@@ -661,7 +661,10 @@ export default function AlumnoExpediente({
     alumno.pago || alumno.ultimo_pago_estado,
   );
   const monto = obtenerMontoAlumno(alumno) || Number(pagos[0]?.monto || 0);
-
+  const modalidadPago =
+    detalle?.inscripciones?.length === 1
+      ? detalle.inscripciones[0].modalidad_pago || "mensualidad"
+      : null;
   const cargarDetalle = () => {
     setLoadingDetalle(true);
 
@@ -867,10 +870,13 @@ export default function AlumnoExpediente({
               ${parseFloat(monto || 0).toLocaleString()}
             </div>
             <div className="stat-lbl">
-              {alumno.tipo_cobro === "por_sesion" ||
-              alumno.tipo_clase === "particular"
-                ? "Pago por paquete"
-                : "Mensual"}
+              {modalidadPago === "por_clase"
+                ? "Por clase"
+                : modalidadPago === "prepago"
+                  ? "Prepago"
+                  : modalidadPago === "mensualidad"
+                    ? "Mensual"
+                    : "Consultar clases"}
             </div>
           </div>
         </div>
